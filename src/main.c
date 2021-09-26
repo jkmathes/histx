@@ -17,17 +17,19 @@
 
 #define CREATE_TABLE_RAW    "create table if not exists cmdraw (" \
                                 "hash text," \
+                                "ts integer," \
                                 "cmd text" \
                             ");"
 
 #define RAW_INDEX           "create unique index hashindex on cmdraw(hash);"
+#define TS_INDEX            "create index tsindex on cmdraw(ts);"
 
 #define CREATE_FTS          "create virtual table commands using fts5(cmd)"
 
 bool init(char *dbn) {
     sqlite3 *db;
     char *err;
-    char *seq[] = {CREATE_TABLE_LUT, LUT_INDEX, CREATE_TABLE_RAW, RAW_INDEX, NULL};
+    char *seq[] = {CREATE_TABLE_LUT, LUT_INDEX, CREATE_TABLE_RAW, RAW_INDEX, TS_INDEX, NULL};
     char **s = &seq[0];
     int r = sqlite3_open(dbn, &db);
     if(r) {
