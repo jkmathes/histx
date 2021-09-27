@@ -3,7 +3,6 @@
 #include "find.h"
 #include "ngram.h"
 #include "sds/sds.h"
-#include "rax/rax.h"
 #include "base64/base64.h"
 
 #define SELECT_LUT_HDR      "select distinct(cmdlut.hash), count(cmdlut.hash) as rank, cmd, ts " \
@@ -20,15 +19,23 @@ bool concat_handler(uint32_t ngram, void *data) {
 }
 
 static int find_handler(void *data, int argc, char **argv, char **col) {
+    char *cmd = NULL;
+    char *ts = NULL;
+
     for(size_t f = 0; f < argc; f++) {
         char *c = *col++;
         char *v = *argv++;
         if(strcmp(c, "cmd") == 0) {
             size_t len;
             char *orig = (char *) base64_decode((unsigned char *)v, strlen(v), &len);
-            printf("%s\n", orig);
+            cmd = orig;
+        }
+        else if(strcmp(c, "ts") == 0) {
+            ts = v;
         }
     }
+
+    printf("[%ux] %s\n", ts, cmd)
     return 0;
 }
 

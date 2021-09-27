@@ -8,7 +8,7 @@ LDFLAGS ?= -lsqlite3
 
 DIRS := $(shell find $(SRC) -type d)
 FLAGS := $(addprefix -I,$(DIRS))
-CFLAGS ?= $(FLAGS) -g -MMD -MP -std=c99
+CFLAGS ?= $(FLAGS) -O2 -MMD -MP -std=c99
 
 $(BUILD)/$(AOUT): $(OBJ)
 	$(CC) $(OBJ) -o $@ $(LDFLAGS)
