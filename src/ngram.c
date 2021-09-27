@@ -1,6 +1,6 @@
 #include "ngram.h"
 
-bool gen_ngrams(char *s, size_t n, bool (*handler)(uint32_t ngram, void *), void *data) {
+bool gen_ngrams(char *s, size_t n, bool (*handler)(uint32_t, void *), void *data) {
     uint32_t ngram = 0;
     size_t size = 0;
     while(*s) {
