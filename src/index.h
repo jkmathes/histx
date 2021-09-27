@@ -1,7 +1,3 @@
-//
-// Created by Jack Matheson on 9/19/21.
-//
-
 #ifndef HISTX_INDEX_H
 #define HISTX_INDEX_H
 

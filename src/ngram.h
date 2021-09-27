@@ -1,7 +1,3 @@
-//
-// Created by Jack Matheson on 9/23/21.
-//
-
 #ifndef HISTX_NGRAM_H
 #define HISTX_NGRAM_H
 

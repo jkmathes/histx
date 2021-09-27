@@ -1,7 +1,3 @@
-//
-// Created by Jack Matheson on 9/23/21.
-//
-
 #include "ngram.h"
 
 bool gen_ngrams(char *s, size_t n, bool (*handler)(uint32_t ngram, void *), void *data) {

@@ -1,7 +1,3 @@
-//
-// Created by Jack Matheson on 9/21/21.
-//
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "find.h"
@@ -30,13 +26,9 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
         if(strcmp(c, "cmd") == 0) {
             size_t len;
             char *orig = (char *) base64_decode((unsigned char *)v, strlen(v), &len);
-            if(orig != NULL && orig[len - 1] == '\n') {
-                orig[len - 1] = 0;
-            }
             printf("%s\n", orig);
         }
     }
-    printf("\n");
     return 0;
 }
 

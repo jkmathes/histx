@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sqlite3.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <string.h>
+#include <pwd.h>
 #include "sds/sds.h"
 #include "index.h"
 #include "find.h"
@@ -26,7 +28,7 @@
 
 #define CREATE_FTS          "create virtual table commands using fts5(cmd)"
 
-bool init(char *dbn) {
+static bool init(char *dbn) {
     sqlite3 *db;
     char *err;
     char *seq[] = {CREATE_TABLE_LUT, LUT_INDEX, CREATE_TABLE_RAW, RAW_INDEX, TS_INDEX, NULL};
@@ -51,9 +53,7 @@ bool init(char *dbn) {
     return true;
 }
 
-bool test_histx();
-
-char *reduce_cmd(char **iter) {
+static char *reduce_cmd(char **iter) {
     sds cmd = sdsempty();
     while (*iter) {
         cmd = sdscat(cmd, *iter++);
@@ -61,17 +61,24 @@ char *reduce_cmd(char **iter) {
             cmd = sdscat(cmd, " ");
         }
     }
+    cmd[strcspn(cmd, "\n")] = 0;
     return cmd;
 }
 
-int main(int argc, char **argv) {
-    //test_histx();
+static char *get_home() {
+    char *home = getenv("HOME");
+    if(home == NULL) {
+        home = getpwuid(getuid())->pw_dir;
+    }
+    return home;
+}
 
-    char *dbn = "histx.db";
+int main(int argc, char **argv) {
+    char *dbn = sdscatprintf(sdsempty(), "%s/.histx.db", get_home());
     sqlite3 *db;
 
-    if(access("histx.db", F_OK) != 0) {
-        if(init("histx.db") == false) {
+    if(access(dbn, F_OK) != 0) {
+        if(init(dbn) == false) {
             fprintf(stderr, "Unable to initialize histx.db\n");
         }
     }

@@ -1,6 +1,3 @@
-//
-// Created by Jack Matheson on 9/19/21.
-//
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
