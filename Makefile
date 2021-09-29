@@ -5,6 +5,10 @@ SRCFILES := $(shell find $(SRC) -name *.c)
 OBJ := $(SRCFILES:%=$(BUILD)/%.o)
 DEP := $(OBJ:.o=.d)
 LDFLAGS ?= -lsqlite3
+UNAME := $(shell uname -s)
+ifeq ($(UNAME),Linux)
+	LDFLAGS += -lssl -lcrypto
+endif
 
 DIRS := $(shell find $(SRC) -type d)
 FLAGS := $(addprefix -I,$(DIRS))
