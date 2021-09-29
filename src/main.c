@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
         iter++;
         sds cmd = reduce_cmd(iter);
         index_cmd(db, cmd);
-	sdsfree(cmd);
+	    sdsfree(cmd);
     }
     else if(*iter && strcmp(*iter, "find") == 0) {
         iter++;
