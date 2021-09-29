@@ -26,8 +26,6 @@
 #define RAW_INDEX           "create unique index hashindex on cmdraw(hash);"
 #define TS_INDEX            "create index tsindex on cmdraw(ts);"
 
-#define CREATE_FTS          "create virtual table commands using fts5(cmd)"
-
 static bool init(char *dbn) {
     sqlite3 *db;
     char *err;
