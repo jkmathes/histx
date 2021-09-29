@@ -37,6 +37,7 @@ static bool insert_hash(sqlite3 *db, char *hash, char *cmd) {
         fprintf(stderr, "query[%s]\n", c);
         return false;
     }
+    sdsfree(c);
     return true;
 }
 
@@ -53,6 +54,7 @@ static bool insert_lut(sqlite3 *db, uint32_t ngram, char *hash) {
         fprintf(stderr, "query[%s]\n", c);
         return false;
     }
+    sdsfree(c);
     return true;
 }
 
@@ -89,6 +91,7 @@ bool index_cmd(sqlite3 *db, char *cmd) {
     char *hash = create_hash(cmd, len);
     char *b64 = (char *)base64_encode((unsigned char *)cmd, len, &b64len);
     bool r = insert_hash(db, hash, b64);
+    free(b64);
     if(r == false) {
         return r;
     }
@@ -105,5 +108,6 @@ bool index_cmd(sqlite3 *db, char *cmd) {
             }
         }
     }
+    sdsfree(hash);
     return true;
 }
