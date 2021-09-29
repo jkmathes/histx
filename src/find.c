@@ -29,13 +29,13 @@ static char *format_when(uint64_t delta) {
     uint32_t hours = mins / 60;
     uint32_t days = hours / 24;
     if(days > 0) {
-         return sdscatprintf(sdsempty(), "%u days ago", days);
+         return sdscatprintf(sdsempty(), "%u day%s ago", days, days > 1 ? "s" : "");
     }
     else if(hours > 0) {
         return sdscatprintf(sdsempty(), "%u hour%s ago", hours, hours > 1 ? "s" : "");
     }
     else if(mins > 0) {
-        return sdscatprintf(sdsempty(), "%u minutes ago", mins);
+        return sdscatprintf(sdsempty(), "%u minute%s ago", mins, mins > 1 ? "s" : "");
     }
     return sdscatprintf(sdsempty(), "A few moments ago");
 }
@@ -65,6 +65,8 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
     char *when_pretty = format_when(delta);
 
     printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", when_pretty, cmd);
+    free(cmd);
+    sdsfree(when_pretty);
     return 0;
 }
 
@@ -82,5 +84,6 @@ bool find_cmd(sqlite3 *db, char **keywords) {
     if(r != SQLITE_OK) {
         fprintf(stderr, "Unable to query database: %s\n", err);
     }
+    sdsfree(c);
     return true;
 }

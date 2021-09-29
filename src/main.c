@@ -90,6 +90,8 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    sdsfree(dbn);
+
     char **iter = argv + 1;
     if(*iter && strcmp(*iter, "index") == 0) {
         iter++;
