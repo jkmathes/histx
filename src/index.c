@@ -83,9 +83,6 @@ bool ngram_handler_lut(uint32_t ngram, void *data) {
 }
 
 bool index_cmd(sqlite3 *db, char *cmd) {
-    uint32_t ngram = 0;
-    char *c = cmd;
-    int size = 0;
     size_t b64len;
     size_t len = strlen(cmd);
     char *hash = create_hash(cmd, len);
@@ -98,16 +95,6 @@ bool index_cmd(sqlite3 *db, char *cmd) {
 
     struct ngram_context context = { .db = db, .hash = hash };
     gen_ngrams(cmd, 3, ngram_handler_lut, &context);
-    while(*c) {
-        ngram = ((ngram << 8) & 0xffffff) | *c++;
-        size++;
-        if(size >= 3) {
-            r = insert_lut(db, ngram, hash);
-            if(r == false) {
-                return r;
-            }
-        }
-    }
     sdsfree(hash);
     return true;
 }
