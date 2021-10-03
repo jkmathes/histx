@@ -10,3 +10,8 @@ save_cmd() {
 
 export PROMPT_COMMAND=save_cmd
 ```
+
+## Usage
+```
+histx find [input tokens]
+```
