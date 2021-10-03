@@ -58,7 +58,7 @@ bool enqueue(struct queue *q, size_t state) {
 
 bool dequeue(struct queue *q, size_t *state) {
     if(q->head == NULL) {
-        *state = SIZE_T_MAX;
+        *state = (size_t)-1;
         return false;
     }
     struct queue_node *old = q->head;
