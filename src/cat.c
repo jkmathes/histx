@@ -46,7 +46,7 @@ static int cat_handler(void *data, int argc, char **argv, char **col) {
     char timestamp[24];
     strftime(timestamp, sizeof(timestamp), "%F %T", localtime(&tv.tv_sec));
 
-    printf(PRETTY_CYAN "[%s]" PRETTY_NORM "%s\n", timestamp, cmd);
+    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", timestamp, cmd);
     free(cmd);
     return 0;
 }
