@@ -8,6 +8,7 @@
 #include "sds/sds.h"
 #include "index.h"
 #include "find.h"
+#include "cat.h"
 
 #define CREATE_TABLE_LUT    "create table if not exists cmdlut (" \
                                 "host text," \
@@ -121,6 +122,9 @@ int main(int argc, char **argv) {
     else if(*iter && strcmp(*iter, "find") == 0) {
         iter++;
         find_cmd(db, iter);
+    }
+    else if(*iter && strcmp(*iter, "cat") == 0) {
+        cat_cmd(db);
     }
     sqlite3_close(db);
     return 0;
