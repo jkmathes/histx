@@ -20,6 +20,7 @@ export PROMPT_COMMAND=save_cmd
 
 For zsh, set your `pre_cmd()` hook:
 ```shell
+pre_cmd() {
     path/to/histx index $(history -1 | awk '{$1=""; print $0}')
 }
 ```
