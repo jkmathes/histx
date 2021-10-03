@@ -101,7 +101,7 @@ bool build_goto(char **keywords, struct universal_matcher *machine) {
     }
 
     if(max_states > INT16_MAX || max_keywords > UINT8_MAX) {
-        return NULL;
+        return false;
     }
 
     size_t buffer_size = sizeof(int16_t) * CHAR_MAX * max_states;
