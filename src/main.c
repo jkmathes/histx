@@ -63,6 +63,20 @@ static char *reduce_cmd(char **iter) {
     return cmd;
 }
 
+static char *get_cmd_from_stdin() {
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t linelen = 0;
+    linelen = getline(&line, &len, stdin);
+    if (linelen > 0) {
+        sds cmd = sdsnew(line);
+        free(line);
+        return cmd;
+    } else {
+        return NULL;
+    }
+}
+
 static char *get_home() {
     char *home = getenv("HOME");
     if(home == NULL) {
@@ -96,6 +110,13 @@ int main(int argc, char **argv) {
         sds cmd = reduce_cmd(iter);
         index_cmd(db, cmd);
         sdsfree(cmd);
+    }
+    else if (*iter && strcmp(*iter, "index-in") == 0) {
+        sds cmd;
+        while ((cmd = get_cmd_from_stdin()) != NULL) {
+            index_cmd(db, cmd);
+            sdsfree(cmd);
+        }
     }
     else if(*iter && strcmp(*iter, "find") == 0) {
         iter++;
