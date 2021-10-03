@@ -1,3 +1,5 @@
+![workflow](https://github.com/jkmathes/histx/actions/workflows/c.yml/badge.svg)
+
 # histx
 Find anything in your command history
 
