@@ -1,4 +1,4 @@
-name: C CI
+name: histx build
 
 on:
   push:
