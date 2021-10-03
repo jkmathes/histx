@@ -169,6 +169,7 @@ bool build_goto(char **keywords, struct universal_matcher *machine) {
         }
     }
 
+    free(q);
     machine->max_states = max_states;
     machine->out = out;
     machine->fail = fail;

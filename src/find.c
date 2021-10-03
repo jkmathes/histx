@@ -67,7 +67,7 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
         char *v = *argv++;
         if(strcmp(c, "cmd") == 0) {
             size_t len;
-            char *orig = (char *) base64_decode((unsigned char *)v, strlen(v), &len);
+            char *orig = (char *)base64_decode((unsigned char *)v, strlen(v), &len);
             cmd = orig;
         }
         else if(strcmp(c, "ts") == 0) {
@@ -77,9 +77,11 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
 
     if(context->universe) {
         if(context->matches >= SEARCH_LIMIT) {
+            free(cmd);
             return 1;
         }
         if(string_matches(cmd, context->m) == false) {
+            free(cmd);
             return 0;
         }
         context->matches++;
