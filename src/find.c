@@ -77,11 +77,9 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
 
     if(context->universe) {
         if(context->matches >= SEARCH_LIMIT) {
-            free(cmd);
             return 1;
         }
         if(string_matches(cmd, context->m) == false) {
-            free(cmd);
             return 0;
         }
         context->matches++;
