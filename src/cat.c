@@ -44,7 +44,7 @@ static int cat_handler(void *data, int argc, char **argv, char **col) {
     tv.tv_usec = epoch - tv.tv_sec * 1000; // this is basically pointless
 
     char timestamp[24];
-    strftime(timestamp, sizeof(timestamp), "%F %T", localtime(&tv.tv_sec));
+    strftime(timestamp, sizeof(timestamp) - 1, "%F %T", localtime(&tv.tv_sec));
 
     printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", timestamp, cmd);
     free(cmd);
