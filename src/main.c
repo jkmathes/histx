@@ -116,7 +116,9 @@ int main(int argc, char **argv) {
     else if (*iter && strcmp(*iter, "index-in") == 0) {
         sds cmd;
         while ((cmd = get_cmd_from_stdin()) != NULL) {
-            index_cmd(db, cmd);
+            if(strlen(cmd) > 0) {
+                index_cmd(db, cmd);
+            }
             sdsfree(cmd);
         }
     }
