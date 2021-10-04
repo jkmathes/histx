@@ -71,6 +71,7 @@ static char *get_cmd_from_stdin() {
     linelen = getline(&line, &len, stdin);
     if (linelen > 0) {
         sds cmd = sdsnew(line);
+        cmd[strcspn(cmd, "\n")] = 0;
         free(line);
         return cmd;
     } else {
