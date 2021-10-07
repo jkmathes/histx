@@ -2,9 +2,9 @@ name: histx build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ '**' ]
   pull_request:
-    branches: [ main ]
+    branches: [ '**' ]
 
 jobs:
   build:
@@ -16,4 +16,6 @@ jobs:
     - name: Install package
       run: sudo apt-get -y install build-essential libsqlite3-dev libssl-dev
     - name: make
-      run: make
+      run: make all
+    - name: test
+      run: ./build/histx-test
