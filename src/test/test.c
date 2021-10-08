@@ -22,13 +22,14 @@ sqlite3 *create_temp_db() {
     if(init(":memory:", db) == false) {
         return NULL;
     }
-    return *db;
+    sqlite3 *r = *db;
+    free(db);
+    return r;
 }
 
 bool destroy_temp_db(sqlite3 *db) {
     if(db != NULL) {
         sqlite3_close(db);
-        sqlite3_free(db);
         return true;
     }
     return false;
@@ -44,6 +45,7 @@ static int index_check_handler(void *data, int argc, char **argv, char **col) {
             char *hash = create_hash(input, strlen(input));
             TEST_CHECK(strcmp(v, hash) == 0);
             TEST_MSG("Hash mismatch: expected[%s], found[%s]", hash, v);
+            sdsfree(hash);
         }
         else if(strcmp(c, "cmd") == 0) {
             size_t len;
@@ -52,6 +54,7 @@ static int index_check_handler(void *data, int argc, char **argv, char **col) {
             TEST_MSG("Length mismatch: expected[%s], found[%s]", input, cmd);
             TEST_CHECK(strcmp(cmd, input) == 0);
             TEST_MSG("String mismatch: expected[%s], found[%s]", input, cmd);
+            free(cmd);
         }
     }
 
@@ -78,6 +81,8 @@ void test_index(void) {
         int sr = sqlite3_exec(db, query, index_check_handler, input, &err);
         TEST_CHECK(sr == SQLITE_OK);
     }
+    sdsfree(input);
+    destroy_temp_db(db);
 }
 
 TEST_LIST = {

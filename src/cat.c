@@ -47,6 +47,6 @@ bool cat_cmd(sqlite3 *db, bool (*handler)(struct hit_context *)) {
         fprintf(stderr, "Unable to query database: %s\n", err);
         return false;
     }
-
+    sdsfree(q);
     return true;
 }
