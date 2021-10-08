@@ -150,5 +150,6 @@ unsigned char * base64_decode(const unsigned char *src, size_t len,
     }
 
     *out_len = pos - out;
+    *pos = 0;
     return out;
 }
