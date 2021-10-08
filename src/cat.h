@@ -11,5 +11,4 @@
 
 bool cat_cmd(sqlite3 *db, bool (*cat_handler)(struct hit_context *));
 
-
 #endif //HISTX_CAT_H
