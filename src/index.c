@@ -15,7 +15,7 @@
     #include <openssl/sha.h>
 #endif
 
-#define INSERT_HASH_HDR     "insert or ignore into cmdraw(hash, ts, cmd) values("
+#define INSERT_HASH_HDR     "insert or replace into cmdraw(hash, ts, cmd) values("
 #define INSERT_HASH_FTR     ");"
 
 #define INSERT_LUT_HDR      "insert or ignore into cmdlut(host, ngram, hash) values("
