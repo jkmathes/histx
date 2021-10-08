@@ -1,3 +1,6 @@
+#if defined(__linux__)
+    #define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <sqlite3.h>
@@ -6,6 +9,7 @@
 #include <string.h>
 #include <pwd.h>
 #include <sys/time.h>
+#include <time.h>
 #include "sds/sds.h"
 #include "index.h"
 #include "find.h"

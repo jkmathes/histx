@@ -1,3 +1,6 @@
+#if defined(__linux__)
+    #define _GNU_SOURCE
+#endif
 #include <inttypes.h>
 #include <unistd.h>
 #include <sqlite3.h>
