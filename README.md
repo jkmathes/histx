@@ -27,6 +27,12 @@ pre_cmd() {
 }
 ```
 
+If you'd like to run tests:
+```shell
+make all
+./build/histx-test
+```
+
 ## Importing current history
 
 At present, you can import your current history using the `index-in` command:
@@ -43,3 +49,4 @@ history | path/to/histx index-in
 ```
 histx find [input tokens]
 ```
+
