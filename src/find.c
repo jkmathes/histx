@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include <sys/time.h>
 #include "find.h"
 #include "ngram.h"
 #include "acs.h"
@@ -24,30 +23,10 @@
                             "inner join cmdraw on cmdlut.hash = cmdraw.hash " \
                             "group by cmdlut.hash order by ts desc;"
 
-#define PRETTY_CYAN "\e[0;36m"
-#define PRETTY_NORM "\e[0m"
-
 bool concat_handler(uint32_t ngram, void *data) {
     sds *work = (sds *)data;
     *work = sdscatprintf(*work, "ngram = %u or ", ngram);
     return true;
-}
-
-static char *format_when(uint64_t delta) {
-    uint32_t secs = delta / 1000;
-    uint32_t mins = secs / 60;
-    uint32_t hours = mins / 60;
-    uint32_t days = hours / 24;
-    if(days > 0) {
-         return sdscatprintf(sdsempty(), "%u day%s ago", days, days > 1 ? "s" : "");
-    }
-    else if(hours > 0) {
-        return sdscatprintf(sdsempty(), "%u hour%s ago", hours, hours > 1 ? "s" : "");
-    }
-    else if(mins > 0) {
-        return sdscatprintf(sdsempty(), "%u minute%s ago", mins, mins > 1 ? "s" : "");
-    }
-    return sdscatprintf(sdsempty(), "A few moments ago");
 }
 
 struct find_context {
@@ -55,6 +34,7 @@ struct find_context {
     char **keywords;
     bool universe;
     struct universal_matcher *m;
+    bool (*hit_handler)(struct hit_context *);
 };
 
 static int find_handler(void *data, int argc, char **argv, char **col) {
@@ -86,19 +66,13 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
     }
 
     uint64_t w = strtoll(ts, NULL, 10);
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    uint64_t now = (uint64_t )(tv.tv_sec) * 1000 + (uint64_t )(tv.tv_usec) / 1000;
-    uint64_t delta = now - w;
-    char *when_pretty = format_when(delta);
-
-    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", when_pretty, cmd);
+    struct hit_context hit = { .cmd = cmd, .ts = w};
+    context->hit_handler(&hit);
     free(cmd);
-    sdsfree(when_pretty);
     return 0;
 }
 
-bool find_cmd(sqlite3 *db, char **keywords) {
+bool find_cmd(sqlite3 *db, char **keywords, bool (*hit_handler)(struct hit_context *)) {
     char **iter = keywords;
     bool universe = true;
     struct universal_matcher *machine = NULL;
@@ -124,7 +98,14 @@ bool find_cmd(sqlite3 *db, char **keywords) {
     }
 
     char *err;
-    struct find_context context = {.universe = universe, .matches = 0, .keywords = keywords, .m = machine};
+    struct find_context context = {
+        .universe = universe,
+        .matches = 0,
+        .keywords = keywords,
+        .m = machine,
+        .hit_handler = hit_handler
+    };
+
     int r = sqlite3_exec(db, c, find_handler, &context, &err);
     if(r != SQLITE_OK) {
         if(!(universe && r == SQLITE_ABORT)) {

@@ -5,11 +5,15 @@
 #include <stdbool.h>
 #include <string.h>
 #include <pwd.h>
+#include <sys/time.h>
 #include "sds/sds.h"
 #include "index.h"
 #include "find.h"
 #include "cat.h"
 #include "init.h"
+
+#define PRETTY_CYAN "\e[0;36m"
+#define PRETTY_NORM "\e[0m"
 
 static char *reduce_cmd(char **iter) {
     sds cmd = sdsempty();
@@ -44,6 +48,46 @@ static char *get_home() {
         home = getpwuid(getuid())->pw_dir;
     }
     return home;
+}
+
+static char *format_when(uint64_t delta) {
+    uint32_t secs = delta / 1000;
+    uint32_t mins = secs / 60;
+    uint32_t hours = mins / 60;
+    uint32_t days = hours / 24;
+    if(days > 0) {
+        return sdscatprintf(sdsempty(), "%u day%s ago", days, days > 1 ? "s" : "");
+    }
+    else if(hours > 0) {
+        return sdscatprintf(sdsempty(), "%u hour%s ago", hours, hours > 1 ? "s" : "");
+    }
+    else if(mins > 0) {
+        return sdscatprintf(sdsempty(), "%u minute%s ago", mins, mins > 1 ? "s" : "");
+    }
+    return sdscatprintf(sdsempty(), "A few moments ago");
+}
+
+bool cat_printer(struct hit_context *hit) {
+    struct timeval tv;
+    tv.tv_sec = hit->ts / 1000;
+    tv.tv_usec = hit->ts - tv.tv_sec * 1000; // this is basically pointless
+
+    char timestamp[24];
+    strftime(timestamp, sizeof(timestamp) - 1, "%F %T", localtime(&tv.tv_sec));
+
+    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", timestamp, hit->cmd);
+    return true;
+}
+
+bool find_printer(struct hit_context *hit) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t now = (uint64_t )(tv.tv_sec) * 1000 + (uint64_t )(tv.tv_usec) / 1000;
+    uint64_t delta = now - hit->ts;
+    char *when_pretty = format_when(delta);
+    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", when_pretty, hit->cmd);
+    sdsfree(when_pretty);
+    return true;
 }
 
 int main(int argc, char **argv) {
@@ -84,10 +128,10 @@ int main(int argc, char **argv) {
     }
     else if(*iter && strcmp(*iter, "find") == 0) {
         iter++;
-        find_cmd(db, iter);
+        find_cmd(db, iter, find_printer);
     }
     else if(*iter && strcmp(*iter, "cat") == 0) {
-        cat_cmd(db);
+        cat_cmd(db, cat_printer);
     }
     sqlite3_close(db);
     return 0;

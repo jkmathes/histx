@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include <sys/time.h>
+#include "find.h"
 #include "cat.h"
 #include "ngram.h"
 #include "sds/sds.h"
@@ -14,14 +14,8 @@
                        "from cmdraw "          \
                        "order by ts asc"
 
-#define PRETTY_CYAN "\e[0;36m"
-#define PRETTY_NORM "\e[0m"
-
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "UnusedParameter"
 static int cat_handler(void *data, int argc, char **argv, char **col) {
-#pragma clang diagnostic pop
-
+    bool (*handler)(struct hit_context *) = (bool (*)(struct hit_context *))data;
     char *cmd = NULL;
     char *ts = NULL;
 
@@ -39,23 +33,16 @@ static int cat_handler(void *data, int argc, char **argv, char **col) {
     }
 
     uint64_t epoch = strtoll(ts, NULL, 10);
-    struct timeval tv;
-    tv.tv_sec = epoch / 1000;
-    tv.tv_usec = epoch - tv.tv_sec * 1000; // this is basically pointless
-
-    char timestamp[24];
-    strftime(timestamp, sizeof(timestamp) - 1, "%F %T", localtime(&tv.tv_sec));
-
-    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", timestamp, cmd);
+    struct hit_context hit = { .ts = epoch, .cmd = cmd };
+    handler(&hit);
     free(cmd);
     return 0;
 }
 
-bool cat_cmd(sqlite3 *db) {
-
+bool cat_cmd(sqlite3 *db, bool (*handler)(struct hit_context *)) {
     sds q = sdsnew(SELECT_RAW_CMD);
     char *err;
-    int r = sqlite3_exec(db, q, cat_handler, NULL, &err);
+    int r = sqlite3_exec(db, q, cat_handler, handler, &err);
     if (r != SQLITE_OK) {
         fprintf(stderr, "Unable to query database: %s\n", err);
         return false;

@@ -7,8 +7,9 @@
 
 #include <stdbool.h>
 #include <sqlite3.h>
+#include "find.h"
 
-bool cat_cmd(sqlite3 *db);
+bool cat_cmd(sqlite3 *db, bool (*cat_handler)(struct hit_context *));
 
 
 #endif //HISTX_CAT_H
