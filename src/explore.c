@@ -78,31 +78,29 @@ bool explore_handler(struct hit_context *hit) {
     return true;
 }
 
-sds explore_manipulate(sds current, int c) {
-    sds r = current;
+void explore_manipulate(sds *current, int c) {
     if(c == K_BACK) {
-        if(sdslen(current) == 1) {
-            sdsfree(current);
-            r = sdsempty();
+        if(sdslen(*current) == 1) {
+            sdsfree(*current);
+            *current = sdsempty();
         }
         else {
-            sdsrange(current, 0, -3);
+            sdsrange(*current, 0, -3);
         }
     }
     else {
-        r = sdscatprintf(current, "%c", c);
+        *current = sdscatprintf(*current, "%c", c);
     }
-    return r;
 }
 
-void dump_state(sqlite3 *db, sds current_line, int *current_selection) {
+void dump_state(sqlite3 *db, sds *current_line, int *current_selection) {
     explore_total = 0;
     max_length = 0;
-    printf("Search: %s\xe2\x96\x88" CLEAR_LINE "\n", current_line);
+    printf("Search: %s\xe2\x96\x88" CLEAR_LINE "\n", *current_line);
     int argc;
-    char **split = sdssplitargs(current_line, &argc);
+    char **split = sdssplitargs(*current_line, &argc);
     if(split != NULL) {
-        char **argv = (char **) malloc(sizeof(char **) * argc + 1);
+        char **argv = (char **) malloc(sizeof(char **) * (argc + 1));
         char **iter = argv;
         char **split_iter = split;
         for(int counter = 0; counter < argc; counter++) {
@@ -180,7 +178,7 @@ bool explore_cmd(sqlite3 *db) {
     printf(CURSOR_DISABLE);
     int current_selection = 0;
     memset(hits, 0, sizeof(char *) * SEARCH_LIMIT);
-    dump_state(db, current_line, &current_selection);
+    dump_state(db, &current_line, &current_selection);
     sds selection = NULL;
 
     while(!explore_done) {
@@ -201,15 +199,15 @@ bool explore_cmd(sqlite3 *db) {
             }
             else if(c == K_DOWN) {
                 current_selection++;
-                dump_state(db, current_line, &current_selection);
+                dump_state(db, &current_line, &current_selection);
             }
             else if(c == K_UP) {
                 current_selection--;
-                dump_state(db, current_line, &current_selection);
+                dump_state(db, &current_line, &current_selection);
             }
             else {
-                current_line = explore_manipulate(current_line, c);
-                dump_state(db, current_line, &current_selection);
+                explore_manipulate(&current_line, c);
+                dump_state(db, &current_line, &current_selection);
             }
         }
     }
@@ -220,6 +218,14 @@ bool explore_cmd(sqlite3 *db) {
     if(selection != NULL) {
         printf("%s\n", selection);
         sdsfree(selection);
+    }
+    for(int f = 0; f < SEARCH_LIMIT; f++) {
+        if(hits[f] != NULL) {
+            sdsfree(hits[f]);
+        }
+    }
+    if(current_line != NULL) {
+        sdsfree(current_line);
     }
     return true;
 }
