@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/time.h>
 #include "find.h"
 #include "explore.h"
 #include "sds/sds.h"
@@ -106,8 +107,9 @@ void dump_state(sqlite3 *db, sds current_line, int *current_selection) {
     if(split != NULL) {
         char **argv = (char **) malloc(sizeof(char **) * argc + 1);
         char **iter = argv;
+        char **split_iter = split;
         for(int counter = 0; counter < argc; counter++) {
-            *iter++ = *split++;
+            *iter++ = *split_iter++;
         }
         *iter = NULL;
         find_cmd(db, argv, explore_handler);
@@ -132,6 +134,8 @@ void dump_state(sqlite3 *db, sds current_line, int *current_selection) {
                 }
             }
         }
+        sdsfreesplitres(split, argc);
+        free(argv);
         fflush(stdout);
         printf(CURSOR_UP);
     }
@@ -145,7 +149,7 @@ void dump_final() {
     printf(CURSOR_UP);
 }
 
-bool explore_cmd2(sqlite3 *db) {
+bool explore_debug(sqlite3 *db) {
     int c;
     signal(SIGINT, done_handler);
     signal(SIGTERM, done_handler);
