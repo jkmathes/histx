@@ -15,6 +15,7 @@
 #include "find.h"
 #include "cat.h"
 #include "init.h"
+#include "explore.h"
 
 #define PRETTY_CYAN "\e[0;36m"
 #define PRETTY_NORM "\e[0m"
@@ -136,6 +137,9 @@ int main(int argc, char **argv) {
     }
     else if(*iter && strcmp(*iter, "cat") == 0) {
         cat_cmd(db, cat_printer);
+    }
+    else if(*iter && strcmp(*iter, "explore") == 0) {
+        explore_cmd(db);
     }
     sqlite3_close(db);
     return 0;
