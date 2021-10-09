@@ -30,9 +30,6 @@
 #define PRETTY_CYAN "\e[0;36m"
 #define PRETTY_NORM "\e[0m"
 
-#define CURSOR_SAVE    "\e[s"
-#define CURSOR_RESTORE "\e[u"
-
 #define CURSOR_DISABLE "\e[?25l"
 #define CURSOR_ENABLE  "\e[?25h"
 
