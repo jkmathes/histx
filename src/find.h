@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <sqlite3.h>
+#include <inttypes.h>
 
 #define SEARCH_LIMIT 5
 

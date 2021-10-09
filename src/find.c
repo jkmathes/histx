@@ -57,9 +57,11 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
 
     if(context->universe) {
         if(context->matches >= SEARCH_LIMIT) {
+            free(cmd);
             return 1;
         }
         if(string_matches(cmd, context->m) == false) {
+            free(cmd);
             return 0;
         }
         context->matches++;
@@ -110,7 +112,12 @@ bool find_cmd(sqlite3 *db, char **keywords, bool (*hit_handler)(struct hit_conte
     if(r != SQLITE_OK) {
         if(!(universe && r == SQLITE_ABORT)) {
             fprintf(stderr, "Unable to query database: %s\n", err);
+            sqlite3_free(err);
+            return false;
         }
+    }
+    if(err != NULL) {
+        sqlite3_free(err);
     }
     free_goto(machine);
     sdsfree(c);
