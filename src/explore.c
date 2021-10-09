@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <signal.h>
+#include <string.h>
 #include "find.h"
 #include "explore.h"
 #include "sds/sds.h"
@@ -72,6 +73,9 @@ static int max_length;
 static char *hits[SEARCH_LIMIT];
 
 bool explore_handler(struct hit_context *hit) {
+    if(hits[explore_total] != NULL) {
+        sdsfree(hits[explore_total]);
+    }
     hits[explore_total++] = sdsnew(hit->cmd);
     return true;
 }
@@ -93,7 +97,7 @@ sds explore_manipulate(sds current, int c) {
     return r;
 }
 
-void dump_state(sqlite3 *db, sds current_line, size_t current_selection) {
+void dump_state(sqlite3 *db, sds current_line, int *current_selection) {
     explore_total = 0;
     max_length = 0;
     printf("Search: %s\xe2\x96\x88" CLEAR_LINE "\n", current_line);
@@ -107,14 +111,14 @@ void dump_state(sqlite3 *db, sds current_line, size_t current_selection) {
         }
         *iter = NULL;
         find_cmd(db, argv, explore_handler);
-        if(current_selection >= explore_total) {
-            current_selection = (explore_total - 1);
+        if(explore_total > 0 && *current_selection >= explore_total) {
+            *current_selection = (explore_total - 1);
         }
-        else if(current_selection < 0) {
-            current_selection = 0;
+        else if(*current_selection < 0) {
+            *current_selection = 0;
         }
         for(size_t f = 0; f < SEARCH_LIMIT; f++) {
-            if(f == current_selection) {
+            if(explore_total > 0 && f == *current_selection) {
                 printf(PRETTY_SELECT "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
             }
             else if(f < explore_total) {
@@ -122,6 +126,10 @@ void dump_state(sqlite3 *db, sds current_line, size_t current_selection) {
             }
             else {
                 printf(CLEAR_LINE "\n");
+                if(hits[f] != NULL) {
+                    sdsfree(hits[f]);
+                    hits[f] = NULL;
+                }
             }
         }
         fflush(stdout);
@@ -169,8 +177,10 @@ bool explore_cmd(sqlite3 *db) {
     sds current_line = sdsempty();
 
     printf(CURSOR_DISABLE);
-    size_t current_selection = 0;
-    dump_state(db, current_line, current_selection);
+    int current_selection = 0;
+    memset(hits, 0, sizeof(char *) * SEARCH_LIMIT);
+    dump_state(db, current_line, &current_selection);
+    sds selection = NULL;
 
     while(!explore_done) {
         if(has_input()) {
@@ -184,18 +194,21 @@ bool explore_cmd(sqlite3 *db) {
 
             if(c == K_ENTER) {
                 explore_done = true;
+                if(hits[current_selection] != NULL) {
+                    selection = sdsnew(hits[current_selection]);
+                }
             }
             else if(c == K_DOWN) {
                 current_selection++;
-                dump_state(db, current_line, current_selection);
+                dump_state(db, current_line, &current_selection);
             }
             else if(c == K_UP) {
                 current_selection--;
-                dump_state(db, current_line, current_selection);
+                dump_state(db, current_line, &current_selection);
             }
             else {
                 current_line = explore_manipulate(current_line, c);
-                dump_state(db, current_line, current_selection);
+                dump_state(db, current_line, &current_selection);
             }
         }
     }
@@ -203,6 +216,10 @@ bool explore_cmd(sqlite3 *db) {
     dump_final();
     printf(CURSOR_ENABLE);
     reset_non_blocking();
+    if(selection != NULL) {
+        printf("%s\n", selection);
+        sdsfree(selection);
+    }
     return true;
 }
 
