@@ -130,16 +130,19 @@ bool find_printer(struct hit_context *hit) {
 
 int main(int argc, char **argv) {
     int opt;
-    char *dbn;
+    char *dbn = NULL;
     char *dbe = getenv("HISTX_DB_FILE");
     if (dbe != NULL) {
         dbn = sdsnew(dbe);
     }
     while ((opt = getopt(argc, argv, "hd:")) != -1) {
-        printf("optind=%i, opt=%c, opterr=%i, optarg=%s", optind, opt, opterr, optarg);
+        //printf("optind=%i, opt=%c, opterr=%i, optarg=%s", optind, opt, opterr, optarg);
         switch (opt) {
             case 'd':
                 // always overrides
+                if(dbn != NULL) {
+                    sdsfree(dbn);
+                }
                 dbn = sdsnew(optarg);
                 break;
             case 'h':
