@@ -38,7 +38,7 @@ void print_usage_and_exit() {
 void check_legal_command(char * cmd) {
     if (cmd == NULL) print_usage_and_exit();
 
-    char *available_commands[] = { "index", "index-in", "cat", "find", "explore" };
+    char *available_commands[] = { "index", "cat", "find", "explore" };
     size_t cc = sizeof(available_commands) / sizeof(char*);
     for (int i = 0; i < cc; i++) {
         if (strcmp(cmd, available_commands[i]) == 0) {
