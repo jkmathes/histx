@@ -20,6 +20,36 @@
 #define PRETTY_CYAN "\e[0;36m"
 #define PRETTY_NORM "\e[0m"
 
+#define HISTX_USAGE "usage: histx [-d dbfile] <command>\n" \
+                    "\toptions:\n" \
+                    "\t\t-d path/to/db/file.db -- defaults to $HOME/.histx.db or the value of $HISTX_DB_FILE\n" \
+                    "\t\t-h this usage information\n" \
+                    "\tcommands:\n" \
+                    "\t\tindex - index all arguments after this command - if the only argument after index is `-` read from stdin\n" \
+                    "\t\tfind - find matching strings matching the passed arg\n"                                \
+                    "\t\tcat - dump the indexed strings\n" \
+                    "\t\texplore - interactive searching of the index\n"
+
+void print_usage_and_exit() {
+    fprintf(stderr, HISTX_USAGE);
+    exit(1);
+}
+
+void check_legal_command(char * cmd) {
+    if (cmd == NULL) print_usage_and_exit();
+
+    char *available_commands[] = { "index", "cat", "find", "explore" };
+    size_t cc = sizeof(available_commands) / sizeof(char*);
+    for (int i = 0; i < cc; i++) {
+        if (strcmp(cmd, available_commands[i]) == 0) {
+            return;
+        }
+    }
+
+    print_usage_and_exit();
+}
+
+
 static char *reduce_cmd(char **iter) {
     sds cmd = sdsempty();
     while (*iter) {
@@ -99,7 +129,34 @@ bool find_printer(struct hit_context *hit) {
 }
 
 int main(int argc, char **argv) {
-    char *dbn = sdscatprintf(sdsempty(), "%s/.histx.db", get_home());
+    int opt;
+    char *dbn = NULL;
+    char *dbe = getenv("HISTX_DB_FILE");
+    if (dbe != NULL) {
+        dbn = sdsnew(dbe);
+    }
+    while ((opt = getopt(argc, argv, "hd:")) != -1) {
+        //printf("optind=%i, opt=%c, opterr=%i, optarg=%s", optind, opt, opterr, optarg);
+        switch (opt) {
+            case 'd':
+                // always overrides
+                if(dbn != NULL) {
+                    sdsfree(dbn);
+                }
+                dbn = sdsnew(optarg);
+                break;
+            case 'h':
+            case '?':
+            default:
+                print_usage_and_exit();
+        }
+    }
+
+    check_legal_command(*(argv + optind));
+
+    if (dbn == NULL) {
+        dbn = sdscatprintf(sdsempty(), "%s/.histx.db", get_home());
+    }
     sqlite3 *db;
 
     if(access(dbn, F_OK) != 0) {
@@ -118,19 +175,22 @@ int main(int argc, char **argv) {
 
     sdsfree(dbn);
 
-    char **iter = argv + 1;
+    char **iter = argv + optind;
+
     if(*iter && strcmp(*iter, "index") == 0) {
         iter++;
-        sds cmd = reduce_cmd(iter);
-        index_cmd(db, cmd);
-        sdsfree(cmd);
-    }
-    else if (*iter && strcmp(*iter, "index-in") == 0) {
-        sds cmd;
-        while ((cmd = get_cmd_from_stdin()) != NULL) {
-            if(strlen(cmd) > 0) {
-                index_cmd(db, cmd);
+        if (strcmp(*iter, "-") == 0 && argc - optind + 1) {
+            sds cmd;
+            while ((cmd = get_cmd_from_stdin()) != NULL) {
+                if(strlen(cmd) > 0) {
+                    index_cmd(db, cmd);
+                }
+                sdsfree(cmd);
             }
+        }
+        else {
+            sds cmd = reduce_cmd(iter);
+            index_cmd(db, cmd);
             sdsfree(cmd);
         }
     }

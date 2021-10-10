@@ -35,18 +35,26 @@ make all
 
 ## Importing current history
 
-At present, you can import your current history using the `index-in` command:
+At present, you can import your current history using the `index` command:
 
 ```shell
 # for zsh
-history 1 | path/to/histx index-in
+history 1 | path/to/histx index -
 
 # for bash
-history | path/to/histx index-in
+history | path/to/histx index -
 ```
 
 ## Usage
 ```
-histx find [input tokens]
+usage: histx [-d dbfile] <command>
+        options:
+                -d path/to/db/file.db -- defaults to $HOME/.histx.db or the value of $HISTX_DB_FILE
+                -h this usage information
+        commands:
+                index - index all arguments after this command - if the only argument after index is `-` read from stdin
+                find - find matching strings matching the passed arg
+                cat - dump the indexed strings
+                explore - interactive searching of the index
 ```
 
