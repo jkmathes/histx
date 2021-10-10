@@ -40,9 +40,12 @@ static char *get_cmd_from_stdin() {
     if (linelen > 0) {
         sds cmd = sdsnew(line);
         cmd[strcspn(cmd, "\n")] = 0;
+        sdsupdatelen(cmd);
         free(line);
         return cmd;
-    } else {
+    }
+    else {
+        free(line);
         return NULL;
     }
 }
