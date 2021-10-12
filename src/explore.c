@@ -1,3 +1,6 @@
+#if defined(__linux__)
+    #define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -5,6 +8,7 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include "find.h"
 #include "explore.h"
 #include "sds/sds.h"
@@ -32,6 +36,12 @@
 
 #define CURSOR_DISABLE "\e[?25l"
 #define CURSOR_ENABLE  "\e[?25h"
+
+static int get_term_width() {
+    struct winsize w;
+    ioctl(fileno(stdout), TIOCGWINSZ, &w);
+    return (int)(w.ws_col);
+}
 
 static void enable_non_blocking() {
     struct termios current;
@@ -67,14 +77,19 @@ static void done_handler(int dummy) {
 }
 
 static int explore_total;
+static int term_width;
 static int max_length;
 static char *hits[SEARCH_LIMIT];
+static char *hitsraw[SEARCH_LIMIT];
 
 bool explore_handler(struct hit_context *hit) {
     if(hits[explore_total] != NULL) {
         sdsfree(hits[explore_total]);
+        sdsfree(hitsraw[explore_total]);
     }
-    hits[explore_total++] = sdsnew(hit->cmd);
+    hits[explore_total] = sdsnew(hit->cmd);
+    hitsraw[explore_total] = sdsnew(hits[explore_total]);
+    sdsrange(hits[explore_total++], 0, term_width - 2);
     return true;
 }
 
@@ -126,6 +141,8 @@ void dump_state(sqlite3 *db, sds *current_line, int *current_selection) {
                 if(hits[f] != NULL) {
                     sdsfree(hits[f]);
                     hits[f] = NULL;
+                    sdsfree(hitsraw[f]);
+                    hitsraw[f] = NULL;
                 }
             }
         }
@@ -180,6 +197,7 @@ bool explore_cmd(sqlite3 *db) {
     memset(hits, 0, sizeof(char *) * SEARCH_LIMIT);
     dump_state(db, &current_line, &current_selection);
     sds selection = NULL;
+    term_width = get_term_width();
 
     while(!explore_done) {
         if(has_input()) {
@@ -194,7 +212,7 @@ bool explore_cmd(sqlite3 *db) {
             if(c == K_ENTER) {
                 explore_done = true;
                 if(hits[current_selection] != NULL) {
-                    selection = sdsnew(hits[current_selection]);
+                    selection = sdsnew(hitsraw[current_selection]);
                 }
             }
             else if(c == K_DOWN) {
@@ -222,6 +240,7 @@ bool explore_cmd(sqlite3 *db) {
     for(int f = 0; f < SEARCH_LIMIT; f++) {
         if(hits[f] != NULL) {
             sdsfree(hits[f]);
+            sdsfree(hitsraw[f]);
         }
     }
     if(current_line != NULL) {
