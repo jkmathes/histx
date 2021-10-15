@@ -25,9 +25,9 @@
                     "\t\t-d path/to/db/file.db -- defaults to $HOME/.histx.db or the value of $HISTX_DB_FILE\n" \
                     "\t\t-h this usage information\n" \
                     "\tcommands:\n" \
-                    "\t\tindex - index all arguments after this command - if the only argument after index is `-` read from stdin\n" \
-                    "\t\tfind - find matching strings matching the passed arg\n"                                \
-                    "\t\tcat - dump the indexed strings\n" \
+                    "\t\tindex   - index all arguments after this command - if the only argument after index is `-` read from stdin\n" \
+                    "\t\tfind    - find matching commands using the the passed keywords\n" \
+                    "\t\tcat     - dump the indexed commands\n" \
                     "\t\texplore - interactive searching of the index\n"
 
 void print_usage_and_exit() {
@@ -136,7 +136,6 @@ int main(int argc, char **argv) {
         dbn = sdsnew(dbe);
     }
     while ((opt = getopt(argc, argv, "hd:")) != -1) {
-        //printf("optind=%i, opt=%c, opterr=%i, optarg=%s", optind, opt, opterr, optarg);
         switch (opt) {
             case 'd':
                 // always overrides
