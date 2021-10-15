@@ -85,8 +85,50 @@ void test_index(void) {
     destroy_temp_db(db);
 }
 
+static char *current_input = NULL;
+static int current_hit = 0;
+
+static bool find_check_handler(struct hit_context *hit) {
+    if(current_hit == 0) {
+        TEST_CHECK(strcmp(hit->cmd, current_input) == 0);
+    }
+    else {
+        TEST_CHECK(strlen(hit->cmd) < strlen(current_input));
+    }
+    current_hit++;
+    return true;
+}
+
+void test_find(void) {
+    sqlite3 *db = create_temp_db();
+    if(!TEST_CHECK(db != NULL)) {
+        TEST_MSG("Unable to create temporary database");
+        return;
+    }
+
+    sds input = sdscatprintf(sdsempty(), "%s", "");
+    char *input_set = "abcdefghijklmnopqrstuvwxyz 0123456789";
+    size_t len = strlen(input_set);
+    char *keywords[2];
+    keywords[1] = NULL;
+
+    for(size_t f = 0; f < 100; f++) {
+        char r = input_set[random() % len];
+        input = sdscatprintf(input, "%c", r);
+        keywords[0] = input;
+        current_input = input;
+        current_hit = 0;
+        TEST_CHECK(index_cmd(db, input));
+        TEST_CHECK(find_cmd(db, keywords, find_check_handler));
+    }
+
+    sdsfree(input);
+    destroy_temp_db(db);
+}
+
 TEST_LIST = {
         { "sanity", test_sanity },
         { "index command", test_index },
+        { "find command", test_find },
         { NULL, NULL }
 };
