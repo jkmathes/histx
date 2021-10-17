@@ -54,3 +54,5 @@ dkms.conf
 build
 histx.db*
 commands.txt
+.vscode
+.DS_Store

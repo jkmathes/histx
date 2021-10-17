@@ -45,6 +45,26 @@ history 1 | path/to/histx index -
 history | path/to/histx index -
 ```
 
+## Reverse Search
+
+### zsh
+
+For zsh, you can create a widget to invoke `histx` for reverse/forward search.
+Explore presently does not have any "directionality" notion per se, so bind
+as you wish.
+
+Example with zle:
+```shell
+function _histx-search {
+  local VISUAL="$PATH_TO_HISTX explore"
+  zle edit-command-line # will invoke $VISUAL with a tmp file name
+  zle accept-line
+}
+
+bindkey "^R" _histx-search # bind traditional emacs mode rev search 
+bindkey -a "/" _histx-search # bind traditional vi mode rev search
+```
+
 ## Usage
 ```
 usage: histx [-d dbfile] <command>
