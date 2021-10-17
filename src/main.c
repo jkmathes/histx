@@ -25,11 +25,16 @@
                     "\t\t-d path/to/db/file.db -- defaults to $HOME/.histx.db or the value of $HISTX_DB_FILE\n" \
                     "\t\t-h this usage information\n" \
                     "\tcommands:\n" \
-                    "\t\tindex             - index all arguments after this command - if the only argument after index is `-` read from stdin\n" \
+                    "\t\tindex             - index all arguments after this command - \n" \
+                    "\t\t                    if the only argument after index is `-` read from stdin\n" \
                     "\t\tfind              - find matching commands using the the passed keywords\n" \
                     "\t\tcat               - dump the indexed commands\n" \
                     "\t\texplore [tmpfile] - interactive searching of the index\n"                              \
-                    "\t\t\tIf [tmpfile] is provided, will write the selection (if any) to the tmp file."
+                    "\t\t                    If [tmpfile] is provided, will write the selection (if any)\n" \
+                    "\t\t                    to the tmp file.\n"
+
+
+
 void print_usage_and_exit() {
     fprintf(stderr, HISTX_USAGE);
     exit(1);
