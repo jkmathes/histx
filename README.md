@@ -22,7 +22,7 @@ export PROMPT_COMMAND="save_cmd;$PROMPT_COMMAND"
 
 For zsh, set your `pre_cmd()` hook:
 ```shell
-pre_cmd() {
+precmd() {
     path/to/histx index $(history -1 | awk '{$1=""; print $0}')
 }
 ```
@@ -39,10 +39,10 @@ At present, you can import your current history using the `index` command:
 
 ```shell
 # for zsh
-history 1 | path/to/histx index -
+history 1 | awk '{$1=""; print $0}' | path/to/histx index -
 
 # for bash
-history | path/to/histx index -
+history | awk '{$1=""; print $0}' | path/to/histx index -
 ```
 
 ## Reverse Search
@@ -61,6 +61,7 @@ function _histx-search {
   zle accept-line
 }
 
+zle -N _histx-search # register the widget
 bindkey "^R" _histx-search # bind traditional emacs mode rev search 
 bindkey -a "/" _histx-search # bind traditional vi mode rev search
 ```
