@@ -4,6 +4,6 @@
 #include <stdbool.h>
 #include "find.h"
 
-bool explore_cmd(sqlite3 *db);
+bool explore_cmd(sqlite3 *db, FILE *output);
 
 #endif //HISTX_EXPLORE_H

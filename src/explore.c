@@ -15,6 +15,7 @@
 
 #define K_ESC 0x1b
 
+#define K_ARROW_VI 0x4f
 #define K_ARROW 0x5b
 #define K_UP    0x41
 #define K_DOWN  0x42
@@ -183,7 +184,7 @@ bool explore_debug(sqlite3 *db) {
     return true;
 }
 
-bool explore_cmd(sqlite3 *db) {
+bool explore_cmd(sqlite3 *db, FILE *output) {
     int c;
 
     signal(SIGINT, done_handler);
@@ -204,7 +205,9 @@ bool explore_cmd(sqlite3 *db) {
             c = fgetc(stdin);
             if(c == K_ESC) {
                 c = fgetc(stdin);
-                if(c == K_ARROW) {
+                // I noticed, at least in zsh, if in vi mode you get ^O for arrow instead of ^[
+                // We probably need a more "portable" way to deal with variant termcaps
+                if(c == K_ARROW || c == K_ARROW_VI) {
                     c = fgetc(stdin);
                 }
             }
@@ -234,7 +237,11 @@ bool explore_cmd(sqlite3 *db) {
     printf(CURSOR_ENABLE);
     reset_non_blocking();
     if(selection != NULL) {
-        printf("%s\n", selection);
+        if (output != NULL) {
+            fprintf(output, "%s\n", selection);
+        } else {
+            printf("%s\n", selection);
+        }
         sdsfree(selection);
     }
     for(int f = 0; f < SEARCH_LIMIT; f++) {
