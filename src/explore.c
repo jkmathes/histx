@@ -236,7 +236,6 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
 
     dump_final();
     printf(CURSOR_ENABLE);
-    reset_non_blocking();
     if(selection != NULL) {
         if (output != NULL) {
             fprintf(output, "%s\n", selection);
@@ -258,6 +257,7 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
         }
         sdsfree(selection);
     }
+    reset_non_blocking();
     for(int f = 0; f < SEARCH_LIMIT; f++) {
         if(hits[f] != NULL) {
             sdsfree(hits[f]);
