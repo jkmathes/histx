@@ -7,6 +7,7 @@
 #include <termios.h>
 #include <signal.h>
 #include <string.h>
+#include <fcntl.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include "find.h"
@@ -239,8 +240,21 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
     if(selection != NULL) {
         if (output != NULL) {
             fprintf(output, "%s\n", selection);
-        } else {
-            printf("%s\n", selection);
+        }
+        else {
+            char *tty = ttyname(fileno(stdin));
+            int term = open(tty, O_RDONLY);
+            if(term < 0) {
+                // Fallback to stdout print
+                printf("%s\n", selection);
+            }
+            else {
+                char *iter = selection;
+                while(*iter) {
+                    ioctl(term, TIOCSTI, iter++);
+                }
+                close(term);
+            }
         }
         sdsfree(selection);
     }
