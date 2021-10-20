@@ -79,3 +79,9 @@ usage: histx [-d dbfile] <command>
                 explore - interactive searching of the index
 ```
 
+## Settings
+Options should be placed in `~/.histx`
+
+Options:
+* `explore-basic = true` - simply print the `explore` result instead of writing back into the command buffer
+
