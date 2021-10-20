@@ -10,6 +10,7 @@
 #include <pwd.h>
 #include <sys/time.h>
 #include <time.h>
+#include "config/config.h"
 #include "sds/sds.h"
 #include "index.h"
 #include "find.h"
@@ -161,6 +162,14 @@ int main(int argc, char **argv) {
     if (dbn == NULL) {
         dbn = sdscatprintf(sdsempty(), "%s/.histx.db", get_home());
     }
+    sds config = sdscatprintf(sdsempty(), "%s/.histx", get_home());
+    FILE *config_fp = fopen(config, "r+");
+    if(load_config(config_fp) == false) {
+        fprintf(stderr, "Syntax error in [%s]\n", config);
+        return -1;
+    }
+    sdsfree(config);
+
     sqlite3 *db;
 
     if(access(dbn, F_OK) != 0) {
@@ -216,6 +225,7 @@ int main(int argc, char **argv) {
             fclose(output);
         }
     }
+    destroy_config();
     sqlite3_close(db);
     return 0;
 }
