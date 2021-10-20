@@ -7,7 +7,7 @@ extern int yylex();
 #include "sds.h"
 #include "config.h"
 
-extern char *current_token;
+extern sds current_token;
 #define YYSTYPE sds
 %}
 
