@@ -13,6 +13,7 @@
 #include "find.h"
 #include "explore.h"
 #include "sds/sds.h"
+#include "config/config.h"
 
 #define K_ESC 0x1b
 
@@ -201,6 +202,17 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
     sds selection = NULL;
     term_width = get_term_width();
 
+    /**
+     * If the 'explore-basic' option was set in histx config,
+     * simply display the explore result, and don't stuff
+     * it into the tty stdin buffer
+     */
+    bool dont_stuff = false;
+    char *explore_basic = get_setting("explore-basic");
+    if(explore_basic != NULL && strcmp(explore_basic, "true") == 0) {
+        dont_stuff = true;
+    }
+
     while(!explore_done) {
         if(has_input()) {
             c = fgetc(stdin);
@@ -243,7 +255,7 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
         else {
             char *tty = ttyname(fileno(stdin));
             int term = open(tty, O_RDONLY);
-            if(term < 0) {
+            if(term < 0 || dont_stuff) {
                 // Fallback to stdout print
                 printf("%s\n", selection);
             }
