@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <string.h>
+#include <inttypes.h>
 #include "sds/sds.h"
 #include "config/config.h"
 
@@ -15,7 +16,7 @@ struct trie_node {
 struct trie_node *create_trie_node(char c) {
     struct trie_node *r = (struct trie_node *)malloc(sizeof(struct trie_node));
     r->c = c;
-    size_t max_children = sizeof(char) * UINT8_MAX;
+    size_t max_children = (((uint64_t)1 << (sizeof(char) * CHAR_BIT)) - 1);
     r->children = (struct trie_node **)malloc(sizeof(struct trie_node *) * max_children);
     memset(r->children, 0, sizeof(struct trie_node *) * max_children);
     r->value = NULL;
@@ -84,7 +85,7 @@ static void destroy_config_r(struct trie_node *iter) {
     if(iter == NULL) {
         return;
     }
-    size_t max_children = sizeof(char) * UINT8_MAX;
+    size_t max_children = (((uint64_t)1 << (sizeof(char) * CHAR_BIT)) - 1);
     for(size_t f = 0; f < max_children; f++) {
         if(iter->children[f] != NULL) {
             destroy_config_r(iter->children[f]);
