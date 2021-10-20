@@ -72,7 +72,7 @@ bool add_setting(char *key, char *value) {
 bool load_config(FILE *fp) {
     yyin = fp;
     if(yyin == NULL) {
-        return false;
+        return true;
     }
     if(yyparse() != 0) {
         return false;
