@@ -12,6 +12,8 @@ sds current_token;
 
 %%
 
+[tT][rR][uU][eE] { current_token = sdsnew("true"); return L_TOKEN; }
+[fF][aA][lL][sS][eE] { current_token = sdsnew("false"); return L_TOKEN; }
 ([^= \t\n\r]+) { current_token = sdsnew(yytext); return L_TOKEN; }
 "\=" { return L_EQUALS; }
 [ \t\n\r]+ { ; }

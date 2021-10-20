@@ -10,7 +10,7 @@ int yyerror(char *);
 
 char *get_setting(char *key);
 bool add_setting(char *key, char *value);
-bool load_config(char *config_file);
+bool load_config(FILE *fp);
 void destroy_config();
 
 #endif //HISTX_CONFIG_H

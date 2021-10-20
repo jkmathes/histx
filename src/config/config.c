@@ -32,6 +32,9 @@ bool trie_add(struct trie_node *t, char *key, char *value) {
         }
         t = t->children[*key++];
     }
+    if(t->value != NULL) {
+        sdsfree(t->value);
+    }
     t->value = sdscatprintf(sdsempty(), "%s", value);
     return true;
 }
@@ -65,8 +68,8 @@ bool add_setting(char *key, char *value) {
     return trie_add(root, key, value);
 }
 
-bool load_config(char *config_file) {
-    yyin = fopen(config_file, "r+");
+bool load_config(FILE *fp) {
+    yyin = fp;
     if(yyin == NULL) {
         return false;
     }

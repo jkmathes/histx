@@ -163,7 +163,8 @@ int main(int argc, char **argv) {
         dbn = sdscatprintf(sdsempty(), "%s/.histx.db", get_home());
     }
     sds config = sdscatprintf(sdsempty(), "%s/.histx", get_home());
-    if(load_config(config) == false) {
+    FILE *config_fp = fopen(config, "r+");
+    if(load_config(config_fp) == false) {
         fprintf(stderr, "Syntax error in [%s]\n", config);
         return -1;
     }

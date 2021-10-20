@@ -135,6 +135,25 @@ void test_config(void) {
     TEST_CHECK(strcmp(get_setting("key2"), "value2") == 0);
     TEST_CHECK(get_setting("key3") == NULL);
     TEST_CHECK(strcmp(get_setting("key1"), "value1") == 0);
+
+    FILE *fp = tmpfile();
+    fprintf(fp, "key1 = true\n");
+    fprintf(fp, "key2 = True\n");
+    fprintf(fp, "key3 = TRUE\n");
+    fprintf(fp, "key4 = false\n");
+    fprintf(fp, "key5 = False\n");
+    fprintf(fp, "key6 = FALSE\n");
+    rewind(fp);
+    load_config(fp);
+
+    char *truths[] = { "key1", "key2", "key3", NULL };
+    for(int f = 0; truths[f] != NULL; f++) {
+        TEST_CHECK(strcmp(get_setting(truths[f]), "true") == 0);
+    }
+    char *falses[] = { "key4", "key5", "key6", NULL };
+    for(int f = 0; falses[f] != NULL; f++) {
+        TEST_CHECK(strcmp(get_setting(falses[f]), "false") == 0);
+    }
 }
 
 TEST_LIST = {
