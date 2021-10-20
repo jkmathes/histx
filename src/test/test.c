@@ -11,6 +11,7 @@
 #include "index.h"
 #include "sds.h"
 #include "find.h"
+#include "config/config.h"
 #include "base64.h"
 
 void test_sanity(void) {
@@ -126,9 +127,20 @@ void test_find(void) {
     destroy_temp_db(db);
 }
 
+void test_config(void) {
+    TEST_CHECK(get_setting("none") == NULL);
+    add_setting("key1", "value1");
+    add_setting("key2", "value2");
+    TEST_CHECK(get_setting("key1") != NULL);
+    TEST_CHECK(strcmp(get_setting("key2"), "value2") == 0);
+    TEST_CHECK(get_setting("key3") == NULL);
+    TEST_CHECK(strcmp(get_setting("key1"), "value1") == 0);
+}
+
 TEST_LIST = {
         { "sanity", test_sanity },
         { "index command", test_index },
         { "find command", test_find },
+        { "configuration", test_config },
         { NULL, NULL }
 };
