@@ -13,6 +13,9 @@
  * the built machine looking for hits. Once we get some number (5),
  * bail out
  */
+
+static const size_t MAX_COLS = (((uint64_t)1 << (sizeof(char) * CHAR_BIT)) - 1);
+
 struct queue_node {
     size_t state;
     struct queue_node *next;
@@ -71,8 +74,8 @@ bool dequeue(struct queue *q, size_t *state) {
 
 static void dump_goto(int16_t *g, size_t max_states) {
     for(int ff = 0; ff < max_states; ff++) {
-        int16_t *c = g + (ff * CHAR_MAX);
-        for(int gg = 0; gg < CHAR_MAX; gg++) {
+        int16_t *c = g + (ff * MAX_COLS);
+        for(int gg = 0; gg < MAX_COLS; gg++) {
             if(c[gg] == -1) {
                 printf("-");
             }
@@ -104,7 +107,7 @@ bool build_goto(char **keywords, struct universal_matcher *machine) {
         return false;
     }
 
-    size_t buffer_size = sizeof(int16_t) * CHAR_MAX * max_states;
+    size_t buffer_size = sizeof(int16_t) * MAX_COLS * max_states;
     int16_t *r = (int16_t *)malloc(buffer_size);
     uint8_t *out = (uint8_t *)malloc(sizeof(uint8_t) * max_states);
     int8_t *fail = (int8_t *)malloc(sizeof(int8_t) * max_states);
@@ -122,7 +125,7 @@ bool build_goto(char **keywords, struct universal_matcher *machine) {
         char *s = *iter++;
         while(*s) {
             char c = *s++;
-            int16_t *current = r + (state * CHAR_MAX);
+            int16_t *current = r + (state * MAX_COLS);
             size_t i = (size_t)c;
             if(current[i] == -1) {
                 current[i] = j++;
@@ -136,7 +139,7 @@ bool build_goto(char **keywords, struct universal_matcher *machine) {
 
     struct queue *q = create_queue();
 
-    for(size_t i = 0; i < CHAR_MAX; i++) {
+    for(size_t i = 0; i < MAX_COLS; i++) {
         if(r[i] == -1) {
             r[i] = 0;
         }
@@ -149,14 +152,14 @@ bool build_goto(char **keywords, struct universal_matcher *machine) {
     while(q->head != NULL) {
         size_t state;
         dequeue(q, &state);
-        int16_t *current = r + (state * CHAR_MAX);
-        for(size_t i = 0; i < CHAR_MAX; i++) {
+        int16_t *current = r + (state * MAX_COLS);
+        for(size_t i = 0; i < MAX_COLS; i++) {
             if(current[i] != -1) {
                 int8_t f = fail[state];
-                int16_t *fail_state = r + (f * CHAR_MAX);
+                int16_t *fail_state = r + (f * MAX_COLS);
                 while(fail_state[i] == -1) {
                     f = fail[f];
-                    fail_state = r + (f * CHAR_MAX);
+                    fail_state = r + (f * MAX_COLS);
                 }
 
                 f = (int8_t)(fail_state[i] & 0xff);
@@ -186,10 +189,12 @@ bool string_matches(char *input, struct universal_matcher *machine) {
     size_t state = 0;
     while(*input) {
         char c = *input++;
-        int16_t *current = g + (state * CHAR_MAX);
+        int16_t *current = g + (state * MAX_COLS);
+        //printf("%x\n", c);
+        //fflush(stdout);
         while(current[c] == -1) {
             state = fail[state];
-            current = g + (state * CHAR_MAX);
+            current = g + (state * MAX_COLS);
         }
         state = current[c];
         if(out[state] == 0) {
