@@ -82,10 +82,11 @@ bool find_cmd(sqlite3 *db, char **keywords, bool (*hit_handler)(struct hit_conte
 
     sds c = sdscatprintf(sdsempty(), "%s ", SELECT_LUT_HDR);
     while(*iter) {
-        if(strlen(*iter) > 2) {
+        size_t kw_len = strlen(*iter);
+        if(kw_len > 2) {
             universe = false;
         }
-        if(strlen(*iter) > 0) {
+        if(kw_len > 0) {
             all_empty = false;
         }
         gen_ngrams(*iter++, 3, concat_handler, &c);
