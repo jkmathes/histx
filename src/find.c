@@ -77,17 +77,27 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
 bool find_cmd(sqlite3 *db, char **keywords, bool (*hit_handler)(struct hit_context *)) {
     char **iter = keywords;
     bool universe = true;
+    bool all_empty = true;
     struct universal_matcher *machine = NULL;
 
     sds c = sdscatprintf(sdsempty(), "%s ", SELECT_LUT_HDR);
     while(*iter) {
-        if(strlen(*iter) > 2) {
+        size_t kw_len = strlen(*iter);
+        if(kw_len > 2) {
             universe = false;
+        }
+        if(kw_len > 0) {
+            all_empty = false;
         }
         gen_ngrams(*iter++, 3, concat_handler, &c);
     }
     sdsrange(c, 0, -4);
     c = sdscatprintf(c, "%s", SELECT_LUT_FTR);
+
+    if(all_empty) {
+        sdsfree(c);
+        return false;
+    }
 
     if(universe) {
         sdsfree(c);
