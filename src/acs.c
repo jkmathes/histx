@@ -190,8 +190,6 @@ bool string_matches(char *input, struct universal_matcher *machine) {
     while(*input) {
         char c = *input++;
         int16_t *current = g + (state * MAX_COLS);
-        //printf("%x\n", c);
-        //fflush(stdout);
         while(current[c] == -1) {
             state = fail[state];
             current = g + (state * MAX_COLS);
