@@ -4,7 +4,7 @@
 Find anything in your command history
 
 ## Dependencies
-Just a few - MacOS should be set; for linux, you need sqlite3 and openssl libraries
+Just a few - MacOS should be set; for linux, you need sqlite3 and openssl libraries, as well as flex and bison
 
 On Ubuntu, for example:
 ```
@@ -69,14 +69,17 @@ bindkey -a "/" _histx-search # bind traditional vi mode rev search
 ## Usage
 ```
 usage: histx [-d dbfile] <command>
-        options:
-                -d path/to/db/file.db -- defaults to $HOME/.histx.db or the value of $HISTX_DB_FILE
-                -h this usage information
-        commands:
-                index - index all arguments after this command - if the only argument after index is `-` read from stdin
-                find - find matching strings matching the passed arg
-                cat - dump the indexed strings
-                explore - interactive searching of the index
+	options:
+		-d path/to/db/file.db -- defaults to $HOME/.histx.db or the value of $HISTX_DB_FILE
+		-h this usage information
+	commands:
+		index             - index all arguments after this command - 
+		                    if the only argument after index is `-` read from stdin
+		find              - find matching commands using the the passed keywords
+		cat               - dump the indexed commands
+		explore [tmpfile] - interactive searching of the index
+		                    If [tmpfile] is provided, will write the selection (if any)
+		                    to the tmp file.
 ```
 
 ## Settings
