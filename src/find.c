@@ -21,7 +21,7 @@
 
 #define SELECT_ALL          "select hash, ts, cmd " \
                             "from cmdraw "          \
-                            "order by ts asc"       \
+                            "order by ts desc"       \
                             ";"
 
 bool concat_handler(uint32_t ngram, void *data) {
