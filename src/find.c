@@ -18,10 +18,11 @@
 #define SELECT_LUT_FTR      "group by cmdlut.hash order by rank desc, ts desc limit " \
                             TO_STR(SEARCH_LIMIT) \
                             ";"
-                                                                                      \
-#define SELECT_ALL          "select distinct(cmdlut.hash), cmd, ts from cmdlut " \
-                            "inner join cmdraw on cmdlut.hash = cmdraw.hash " \
-                            "group by cmdlut.hash order by ts desc;"
+
+#define SELECT_ALL          "select hash, ts, cmd " \
+                            "from cmdraw "          \
+                            "order by ts asc"       \
+                            ";"
 
 bool concat_handler(uint32_t ngram, void *data) {
     sds *work = (sds *)data;
