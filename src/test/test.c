@@ -13,6 +13,7 @@
 #include "find.h"
 #include "config/config.h"
 #include "base64.h"
+#include "ngram.h"
 
 void test_sanity(void) {
     TEST_CHECK(sizeof(uint8_t) == sizeof(int8_t));
@@ -156,10 +157,40 @@ void test_config(void) {
     }
 }
 
+bool test_ngram_count_handler(uint32_t ngram, void *data) {
+    int *c = (int *)data;
+    *c = *c + 1;
+    return true;
+}
+
+bool test_ngram_sum_handler(uint32_t ngram, void *data) {
+    uint32_t *c = (uint32_t *)data;
+    *c = *c + ngram;
+    return true;
+}
+
+void test_ngrams(void) {
+    int *c = (int *)malloc(sizeof(int));
+    *c = 0;
+    TEST_CHECK(gen_ngrams("testing", 3, test_ngram_count_handler, (void *)c));
+    TEST_CHECK(*c == 5);
+    *c = 0;
+    TEST_CHECK(gen_ngrams("testing", 2, test_ngram_count_handler, (void *)c));
+    TEST_CHECK(*c == 6);
+    free(c);
+
+    uint32_t *sum = (uint32_t *)malloc(sizeof(uint32_t));
+    *sum = 0;
+    TEST_CHECK(gen_ngrams("testing", 3, test_ngram_sum_handler, (void *)sum));
+    TEST_CHECK(*sum == 0x22B2525);
+    free(sum);
+}
+
 TEST_LIST = {
         { "sanity", test_sanity },
         { "index command", test_index },
         { "find command", test_find },
         { "configuration", test_config },
+        { "ngram generation", test_ngrams },
         { NULL, NULL }
 };
