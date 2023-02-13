@@ -215,12 +215,14 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
 
     while(!explore_done) {
         if(has_input()) {
+            bool is_arrow = false;
             c = fgetc(stdin);
             if(c == K_ESC) {
                 c = fgetc(stdin);
                 // I noticed, at least in zsh, if in vi mode you get ^O for arrow instead of ^[
                 // We probably need a more "portable" way to deal with variant termcaps
                 if(c == K_ARROW || c == K_ARROW_VI) {
+                    is_arrow = true;
                     c = fgetc(stdin);
                 }
             }
@@ -231,11 +233,11 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
                     selection = sdsnew(hitsraw[current_selection]);
                 }
             }
-            else if(c == K_DOWN) {
+            else if(is_arrow && c == K_DOWN) {
                 current_selection++;
                 dump_state(db, &current_line, &current_selection);
             }
-            else if(c == K_UP) {
+            else if(is_arrow && c == K_UP) {
                 current_selection--;
                 dump_state(db, &current_line, &current_selection);
             }
