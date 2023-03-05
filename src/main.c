@@ -188,6 +188,19 @@ int main(int argc, char **argv) {
 
     sdsfree(dbn);
 
+    char *search_limit = get_setting("search-limit");
+    if(search_limit != NULL) {
+        const char *estr = NULL;
+        // the maximum search hits can be between 5 and 20
+        SEARCH_LIMIT = strtonum(search_limit, 5, 20, &estr);
+        if (estr != NULL) {
+            SEARCH_LIMIT = 5;
+        }
+    }
+    else {
+        SEARCH_LIMIT = 5;
+    }
+
     char **iter = argv + optind;
 
     if(*iter && strcmp(*iter, "index") == 0) {

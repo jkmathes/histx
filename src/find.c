@@ -15,14 +15,17 @@
                             "inner join cmdraw on cmdlut.hash = cmdraw.hash " \
                             "where "
 
-#define SELECT_LUT_FTR      "group by cmdlut.hash order by rank desc, ts desc limit " \
-                            TO_STR(SEARCH_LIMIT) \
+#define SELECT_LUT_T        "group by cmdlut.hash order by rank desc, ts desc limit " \
+                            "%d" \
                             ";"
 
 #define SELECT_ALL          "select hash, ts, cmd " \
                             "from cmdraw "          \
                             "order by ts desc"       \
                             ";"
+
+char *SELECT_LUT_FTR = NULL;
+int SEARCH_LIMIT = 5;
 
 bool concat_handler(uint32_t ngram, void *data) {
     sds *work = (sds *)data;
@@ -81,6 +84,7 @@ bool find_cmd(sqlite3 *db, char **keywords, bool (*hit_handler)(struct hit_conte
     bool all_empty = true;
     struct universal_matcher *machine = NULL;
 
+    SELECT_LUT_FTR = sdscatprintf(sdsempty(), SELECT_LUT_T, SEARCH_LIMIT);
     sds c = sdscatprintf(sdsempty(), "%s ", SELECT_LUT_HDR);
     while(*iter) {
         size_t kw_len = strlen(*iter);
@@ -92,6 +96,8 @@ bool find_cmd(sqlite3 *db, char **keywords, bool (*hit_handler)(struct hit_conte
         }
         gen_ngrams(*iter++, 3, concat_handler, &c);
     }
+    // remove the trailing ' or ' that the concat_handler added
+    // (only meaningful if we were ngramming)
     sdsrange(c, 0, -4);
     c = sdscatprintf(c, "%s", SELECT_LUT_FTR);
 
