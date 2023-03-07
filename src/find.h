@@ -5,7 +5,7 @@
 #include <sqlite3.h>
 #include <inttypes.h>
 
-#define SEARCH_LIMIT 5
+extern int SEARCH_LIMIT;
 
 struct hit_context {
     char *cmd;

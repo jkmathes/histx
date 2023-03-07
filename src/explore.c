@@ -28,7 +28,7 @@
 
 #define K_ENTER 0xa
 
-#define CURSOR_UP   "\e[6A"
+#define CURSOR_UP   "\e[%dA"
 #define CLEAR_LINE  "\e[K"
 
 #define PRETTY_GREY   "\e[0;37m"
@@ -79,11 +79,11 @@ static void done_handler(int dummy) {
     explore_done = true;
 }
 
-static int explore_total;
+static volatile int explore_total;
 static int term_width;
 static int max_length;
-static char *hits[SEARCH_LIMIT];
-static char *hitsraw[SEARCH_LIMIT];
+static char **hits;
+static char **hitsraw;
 
 bool explore_handler(struct hit_context *hit) {
     if(hits[explore_total] != NULL) {
@@ -152,7 +152,7 @@ void dump_state(sqlite3 *db, sds *current_line, int *current_selection) {
         sdsfreesplitres(split, argc);
         free(argv);
         fflush(stdout);
-        printf(CURSOR_UP);
+        printf(CURSOR_UP, SEARCH_LIMIT + 1);
     }
 }
 
@@ -161,7 +161,7 @@ void dump_final() {
         printf(CLEAR_LINE "\n");
     }
     fflush(stdout);
-    printf(CURSOR_UP);
+    printf(CURSOR_UP, SEARCH_LIMIT + 1);
 }
 
 bool explore_debug(sqlite3 *db) {
@@ -188,6 +188,9 @@ bool explore_debug(sqlite3 *db) {
 
 bool explore_cmd(sqlite3 *db, FILE *output) {
     int c;
+
+    hits = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
+    hitsraw = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
 
     signal(SIGINT, done_handler);
     signal(SIGTERM, done_handler);

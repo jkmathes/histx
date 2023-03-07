@@ -155,6 +155,7 @@ void test_config(void) {
     for(int f = 0; falses[f] != NULL; f++) {
         TEST_CHECK(strcmp(get_setting(falses[f]), "false") == 0);
     }
+    destroy_config();
 }
 
 bool test_ngram_count_handler(uint32_t ngram, void *data) {

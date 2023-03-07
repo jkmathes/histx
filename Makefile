@@ -16,7 +16,7 @@ DEP := $(OBJ:.o=.d)
 LDFLAGS ?= -lsqlite3
 UNAME := $(shell uname -s)
 ifeq ($(UNAME),Linux)
-	LDFLAGS += -lssl -lcrypto
+	LDFLAGS += -lssl -lcrypto -lbsd
 endif
 
 DIRS := $(shell find $(SRC) -type d)
