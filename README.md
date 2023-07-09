@@ -87,4 +87,5 @@ Options should be placed in `~/.histx`
 
 Options:
 * `explore-basic = true` - simply print the `explore` result instead of writing back into the command buffer
+* `search-limit = <limit>` - set the maximum number of results returned in interactive `explore`; default is `5`
 
