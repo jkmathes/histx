@@ -187,11 +187,20 @@ void test_ngrams(void) {
     free(sum);
 }
 
+void test_hash(void) {
+    sds input = sdscatprintf(sdsempty(), "%s", "histx test hash");
+    sds hash = create_hash(input, sdslen(input));
+    TEST_CHECK(strncmp(hash, "06afb70aa2b22ddc874af3881454dca9d6cfd4fedc81b36f85928f0ac3c752d1", 64) == 0);
+    sdsfree(input);
+    sdsfree(hash);
+}
+
 TEST_LIST = {
         { "sanity", test_sanity },
         { "index command", test_index },
         { "find command", test_find },
         { "configuration", test_config },
         { "ngram generation", test_ngrams },
+	    { "hash testing", test_hash },
         { NULL, NULL }
 };
