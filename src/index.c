@@ -62,10 +62,15 @@ char *create_hash(char *src, size_t len) {
     uint8_t digest[SHA256_DIGEST_LENGTH];
     sds r = sdsempty();
 
+#if defined(__APPLE__)
     SHA256_CTX c;
     SHA256_Init(&c);
     SHA256_Update(&c, src, len);
     SHA256_Final(digest, &c);
+#else
+    SHA256(src, len, digest);
+#endif
+
     for(size_t f = 0; f < SHA256_DIGEST_LENGTH; f++) {
         r = sdscatprintf(r, "%02x", digest[f]);
     }
