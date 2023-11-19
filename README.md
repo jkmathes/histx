@@ -4,7 +4,7 @@
 Find anything in your command history
 
 ## Dependencies
-Just a few - MacOS should be set; for linux, you need sqlite3 and openssl libraries, as well as flex and bison
+Just a few - MacOS should be set; for linux, you need sqlite3 and openssl libraries, as well as flex and bison and bsd compatibility
 
 On Ubuntu, for example:
 ```
