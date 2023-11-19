@@ -8,7 +8,7 @@ Just a few - MacOS should be set; for linux, you need sqlite3 and openssl librar
 
 On Ubuntu, for example:
 ```
-apt-get install -y build-essential libsqlite3-dev libssl-dev flex bison
+apt-get install -y build-essential libsqlite3-dev libssl-dev flex bison libbsd-dev
 ```
 ## Installation
 On MacOS, for example in `.bash_profile`:
