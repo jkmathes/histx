@@ -17,6 +17,7 @@
 #include "cat.h"
 #include "init.h"
 #include "explore.h"
+#include "util.h"
 
 #define PRETTY_CYAN "\e[0;36m"
 #define PRETTY_NORM "\e[0m"
@@ -44,7 +45,7 @@ void print_usage_and_exit() {
 void check_legal_command(char * cmd) {
     if (cmd == NULL) print_usage_and_exit();
 
-    char *available_commands[] = { "index", "cat", "find", "explore" };
+    char *available_commands[] = { "index", "cat", "find", "explore", "prune" };
     size_t cc = sizeof(available_commands) / sizeof(char*);
     for (int i = 0; i < cc; i++) {
         if (strcmp(cmd, available_commands[i]) == 0) {
@@ -94,23 +95,6 @@ static char *get_home() {
     return home;
 }
 
-static char *format_when(uint64_t delta) {
-    uint32_t secs = delta / 1000;
-    uint32_t mins = secs / 60;
-    uint32_t hours = mins / 60;
-    uint32_t days = hours / 24;
-    if(days > 0) {
-        return sdscatprintf(sdsempty(), "%u day%s ago", days, days > 1 ? "s" : "");
-    }
-    else if(hours > 0) {
-        return sdscatprintf(sdsempty(), "%u hour%s ago", hours, hours > 1 ? "s" : "");
-    }
-    else if(mins > 0) {
-        return sdscatprintf(sdsempty(), "%u minute%s ago", mins, mins > 1 ? "s" : "");
-    }
-    return sdscatprintf(sdsempty(), "A few moments ago");
-}
-
 bool cat_printer(struct hit_context *hit) {
     struct timeval tv;
     tv.tv_sec = hit->ts / 1000;
@@ -124,13 +108,9 @@ bool cat_printer(struct hit_context *hit) {
 }
 
 bool find_printer(struct hit_context *hit) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    uint64_t now = (uint64_t )(tv.tv_sec) * 1000 + (uint64_t )(tv.tv_usec) / 1000;
-    uint64_t delta = now - hit->ts;
-    char *when_pretty = format_when(delta);
-    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", when_pretty, hit->cmd);
-    sdsfree(when_pretty);
+    char *when = when_pretty(hit->ts);
+    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", when, hit->cmd);
+    sdsfree(when);
     return true;
 }
 
@@ -172,18 +152,9 @@ int main(int argc, char **argv) {
 
     sqlite3 *db;
 
-    if(access(dbn, F_OK) != 0) {
-        if(init(dbn, &db) == false) {
-            fprintf(stderr, "Unable to initialize histx.db\n");
-        }
-    }
-    else {
-        int r = sqlite3_open(dbn, &db);
-        if (r) {
-            fprintf(stderr, "Unable to open %s [%s]\n", dbn, sqlite3_errmsg(db));
-            sqlite3_close(db);
-            return -1;
-        }
+    if(init(dbn, &db) == false) {
+        fprintf(stderr, "Unable to initialize histx.db\n");
+        return -1;
     }
 
     sdsfree(dbn);
@@ -233,10 +204,14 @@ int main(int argc, char **argv) {
         if (*iter != NULL) {
             output = fopen(*iter, "w");
         }
-        explore_cmd(db, output);
+        explore_cmd(db, output, MODE_EXPLORE);
+        //explore_debug(db);
         if (output != NULL) {
             fclose(output);
         }
+    }
+    else if(*iter && strcmp(*iter, "prune") == 0) {
+        explore_cmd(db, NULL, MODE_PRUNE);
     }
     destroy_config();
     sqlite3_close(db);

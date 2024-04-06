@@ -10,18 +10,20 @@
 #define EXPAND_STR(v)       #v
 #define TO_STR(v)           EXPAND_STR(v)
 
-#define SELECT_LUT_HDR      "select distinct(cmdlut.hash), count(cmdlut.hash) as rank, cmd, ts " \
-                            "from cmdlut " \
-                            "inner join cmdraw on cmdlut.hash = cmdraw.hash " \
+#define SELECT_LUT_HDR      "select distinct(cmdlut.hash), count(cmdlut.hash) as rank, cmd, ts, type " \
+                            "from cmdlut "                                                             \
+                            "inner join cmdraw on cmdlut.hash = cmdraw.hash "                          \
+                            "left outer join cmdan on cmdraw.hash = cmdan.hash "                       \
                             "where "
 
 #define SELECT_LUT_T        "group by cmdlut.hash order by rank desc, ts desc limit " \
-                            "%d" \
+                            "%d"                                                      \
                             ";"
 
-#define SELECT_ALL          "select hash, ts, cmd " \
-                            "from cmdraw "          \
-                            "order by ts desc"       \
+#define SELECT_ALL          "select cmdraw.hash, ts, cmd, type "                 \
+                            "from cmdraw "                                       \
+                            "left outer join cmdan on cmdraw.hash = cmdan.hash " \
+                            "order by ts desc"                                   \
                             ";"
 
 char *SELECT_LUT_FTR = NULL;
@@ -44,6 +46,7 @@ struct find_context {
 static int find_handler(void *data, int argc, char **argv, char **col) {
     char *cmd = NULL;
     char *ts = NULL;
+    char *type = NULL;
     struct find_context *context = (struct find_context *)data;
 
     for(size_t f = 0; f < argc; f++) {
@@ -56,6 +59,9 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
         }
         else if(strcmp(c, "ts") == 0) {
             ts = v;
+        }
+        else if(strcmp(c, "type") == 0) {
+            type = v;
         }
     }
 
@@ -72,7 +78,11 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
     }
 
     uint64_t w = strtoll(ts, NULL, 10);
-    struct hit_context hit = { .cmd = cmd, .ts = w};
+    uint8_t t = 0;
+    if(type != NULL) {
+        t = strtol(type, NULL, 10);
+    }
+    struct hit_context hit = { .cmd = cmd, .ts = w, .annotation_type = t};
     context->hit_handler(&hit);
     free(cmd);
     return 0;
@@ -100,6 +110,7 @@ bool find_cmd(sqlite3 *db, char **keywords, bool (*hit_handler)(struct hit_conte
     // (only meaningful if we were ngramming)
     sdsrange(c, 0, -4);
     c = sdscatprintf(c, "%s", SELECT_LUT_FTR);
+    sdsfree(SELECT_LUT_FTR);
 
     if(all_empty) {
         sdsfree(c);

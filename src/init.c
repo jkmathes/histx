@@ -10,7 +10,7 @@
                                 "hash text" \
                             ");"
 
-#define LUT_INDEX           "create unique index ngramindex on cmdlut(ngram, hash);"
+#define LUT_INDEX           "create unique index if not exists ngramindex on cmdlut(ngram, hash);"
 
 #define CREATE_TABLE_RAW    "create table if not exists cmdraw (" \
                                 "hash text," \
@@ -18,13 +18,30 @@
                                 "cmd text" \
                             ");"
 
-#define RAW_INDEX           "create unique index hashindex on cmdraw(hash);"
-#define TS_INDEX            "create index tsindex on cmdraw(ts);"
+#define RAW_INDEX           "create unique index if not exists hashindex on cmdraw(hash);"
+#define TS_INDEX            "create index if not exists tsindex on cmdraw(ts);"
+
+#define CREATE_TABLE_AN     "create table if not exists cmdan (" \
+                                "hash text primary key,"         \
+                                "type integer,"                  \
+                                "desc text"                      \
+                            ");"
+
+#define ANNOTATION_INDEX    "create unique index if not exists anindex on cmdan(hash, type);"
 
 bool init(char *dbn, sqlite3 **db) {
     sqlite3 *d;
     char *err;
-    char *seq[] = {CREATE_TABLE_LUT, LUT_INDEX, CREATE_TABLE_RAW, RAW_INDEX, TS_INDEX, NULL};
+    char *seq[] = {
+            CREATE_TABLE_LUT,
+            LUT_INDEX,
+            CREATE_TABLE_RAW,
+            RAW_INDEX,
+            TS_INDEX,
+            CREATE_TABLE_AN,
+            ANNOTATION_INDEX,
+            NULL
+    };
     char **s = &seq[0];
     int r = sqlite3_open(dbn, &d);
     if(r) {

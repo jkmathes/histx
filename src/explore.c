@@ -14,6 +14,9 @@
 #include "explore.h"
 #include "sds/sds.h"
 #include "config/config.h"
+#include "index.h"
+#include "base64.h"
+#include "util.h"
 
 #define K_ESC 0x1b
 
@@ -23,6 +26,7 @@
 #define K_DOWN  0x42
 #define K_RIGHT 0x43
 #define K_LEFT  0x44
+#define K_PRUNE 0x10 // ctl+p
 
 #define K_BACK 0x7f
 
@@ -34,16 +38,54 @@
 #define PRETTY_GREY   "\e[0;37m"
 #define PRETTY_SELECT "\e[46m"
 
+#define PRETTY_PRUNE  "\e[45m"
+
 #define PRETTY_CYAN "\e[0;36m"
 #define PRETTY_NORM "\e[0m"
 
 #define CURSOR_DISABLE "\e[?25l"
 #define CURSOR_ENABLE  "\e[?25h"
 
+#define MARK_PRUNE  "insert into cmdan(hash, type, desc) "       \
+                    "values (\"%s\", %d, \"%s\") "               \
+                    "on conflict(hash) do update "               \
+                    "set type=excluded.type, desc=excluded.desc" \
+                    ";"
+
+#define SELECT_PRUNE "select r.hash, r.cmd, r.ts, a.type, a.desc " \
+                     "from cmdraw as r "                           \
+                     "inner join cmdan as a "                      \
+                     "where r.hash = a.hash and a.type = 1 "       \
+                     "group by r.hash"                             \
+                     ";"
+
+#define DELETE_PRUNE "delete from cmdan "              \
+                     "where hash = '%s' and type = 1 " \
+                     ";"
+
 static int get_term_width() {
     struct winsize w;
     ioctl(fileno(stdout), TIOCGWINSZ, &w);
     return (int)(w.ws_col);
+}
+
+static void prune_current(sqlite3 *db, sds selection, bool unmark) {
+    char *err;
+    sds hash = create_hash(selection, sdslen(selection));
+    sds c = sdsempty();
+    if(unmark) {
+        c = sdscatprintf(c, DELETE_PRUNE, hash);
+    }
+    else {
+        c = sdscatprintf(c, MARK_PRUNE, hash, 1, "prune");
+    }
+    int r = sqlite3_exec(db, c, NULL, NULL, &err);
+    if(r != SQLITE_OK) {
+        fprintf(stderr, "Unable to mark for pruning: %s\n", err);
+        return;
+    }
+    sdsfree(hash);
+    sdsfree(c);
 }
 
 static void enable_non_blocking() {
@@ -84,6 +126,7 @@ static int term_width;
 static int max_length;
 static char **hits;
 static char **hitsraw;
+static uint8_t *hitsannotations;
 
 bool explore_handler(struct hit_context *hit) {
     if(hits[explore_total] != NULL) {
@@ -92,6 +135,7 @@ bool explore_handler(struct hit_context *hit) {
     }
     hits[explore_total] = sdsnew(hit->cmd);
     hitsraw[explore_total] = sdsnew(hits[explore_total]);
+    hitsannotations[explore_total] = hit->annotation_type;
     sdsrange(hits[explore_total++], 0, term_width - 2);
     return true;
 }
@@ -109,6 +153,49 @@ void explore_manipulate(sds *current, int c) {
     else {
         *current = sdscatprintf(*current, "%c", c);
     }
+}
+
+static int select_prune_handler(void *data, int argc, char **argv, char **col) {
+    char *cmd = NULL;
+    char *ts = NULL;
+    uint32_t *counter = (uint32_t *)data;
+    *counter = *counter + 1;
+
+    for(size_t f = 0; f < argc; f++) {
+        char *c = *col++;
+        char *v = *argv++;
+        if(strcmp(c, "cmd") == 0) {
+            size_t len;
+            char *orig = (char *)base64_decode((unsigned char *)v, strlen(v), &len);
+            cmd = orig;
+        }
+        else if(strcmp(c, "ts") == 0) {
+            ts = v;
+        }
+    }
+
+    if(cmd != NULL && ts != NULL) {
+        uint64_t w = strtoll(ts, NULL, 10);
+        sds when = when_pretty(w);
+        printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", when, cmd);
+        free(cmd);
+        sdsfree(when);
+    }
+    return 0;
+}
+
+static void confirm_prune(sqlite3 *db) {
+    char *err;
+    uint32_t counter = 0;
+    printf(PRETTY_PRUNE "### TO BE PRUNED ######################" PRETTY_NORM "\n");
+    int r = sqlite3_exec(db, SELECT_PRUNE, select_prune_handler, &counter, &err);
+    if(r != SQLITE_OK) {
+        fprintf(stderr, "Unable to fetch prune candidates: %s\n", err);
+        return;
+    }
+    printf(PRETTY_PRUNE "#######################################" PRETTY_NORM "\n");
+
+    // TODO prompt for confirmation and delete
 }
 
 void dump_state(sqlite3 *db, sds *current_line, int *current_selection) {
@@ -133,7 +220,10 @@ void dump_state(sqlite3 *db, sds *current_line, int *current_selection) {
             *current_selection = 0;
         }
         for(size_t f = 0; f < SEARCH_LIMIT; f++) {
-            if(explore_total > 0 && f == *current_selection) {
+            if(explore_total > 0 && hitsannotations[f] == 1) {
+                printf(PRETTY_PRUNE "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
+            }
+            else if(explore_total > 0 && f == *current_selection) {
                 printf(PRETTY_SELECT "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
             }
             else if(f < explore_total) {
@@ -186,11 +276,12 @@ bool explore_debug(sqlite3 *db) {
     return true;
 }
 
-bool explore_cmd(sqlite3 *db, FILE *output) {
+bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
     int c;
 
     hits = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
     hitsraw = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
+    hitsannotations = (uint8_t *)malloc(sizeof(uint8_t) * SEARCH_LIMIT);
 
     signal(SIGINT, done_handler);
     signal(SIGTERM, done_handler);
@@ -244,6 +335,11 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
                 current_selection--;
                 dump_state(db, &current_line, &current_selection);
             }
+            else if(c == K_PRUNE && mode == MODE_PRUNE) {
+                bool unmark = hitsannotations[current_selection] == 1;
+                prune_current(db, hitsraw[current_selection], unmark);
+                dump_state(db, &current_line, &current_selection);
+            }
             else {
                 explore_manipulate(&current_line, c);
                 dump_state(db, &current_line, &current_selection);
@@ -253,7 +349,7 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
 
     dump_final();
     printf(CURSOR_ENABLE);
-    if(selection != NULL) {
+    if(selection != NULL && mode == MODE_EXPLORE) {
         if (output != NULL) {
             fprintf(output, "%s\n", selection);
         }
@@ -272,7 +368,9 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
                 close(term);
             }
         }
-        sdsfree(selection);
+    }
+    else if(mode == MODE_PRUNE) {
+        confirm_prune(db);
     }
     reset_non_blocking();
     for(int f = 0; f < SEARCH_LIMIT; f++) {
@@ -284,6 +382,12 @@ bool explore_cmd(sqlite3 *db, FILE *output) {
     if(current_line != NULL) {
         sdsfree(current_line);
     }
+    if(selection != NULL) {
+        sdsfree(selection);
+    }
+    free(hits);
+    free(hitsraw);
+    free(hitsannotations);
     return true;
 }
 
