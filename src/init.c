@@ -11,6 +11,7 @@
                             ");"
 
 #define LUT_INDEX           "create unique index if not exists ngramindex on cmdlut(ngram, hash);"
+#define LUT_HASH_INDEX      "create index if not exists ngramhashindex on cmdlut(hash);"
 
 #define CREATE_TABLE_RAW    "create table if not exists cmdraw (" \
                                 "hash text," \
@@ -35,6 +36,7 @@ bool init(char *dbn, sqlite3 **db) {
     char *seq[] = {
             CREATE_TABLE_LUT,
             LUT_INDEX,
+            LUT_HASH_INDEX,
             CREATE_TABLE_RAW,
             RAW_INDEX,
             TS_INDEX,

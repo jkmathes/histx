@@ -3,6 +3,7 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <termios.h>
 #include <signal.h>
@@ -62,6 +63,16 @@
 #define DELETE_PRUNE "delete from cmdan "              \
                      "where hash = '%s' and type = 1 " \
                      ";"
+
+#define PURGE_PRUNES "begin; "                                     \
+                     "   delete from cmdraw where hash in ( "      \
+                     "      select hash from cmdan where type = 1" \
+                     "   );"                                       \
+                     "   delete from cmdlut where hash in ( "      \
+                     "      select hash from cmdan where type = 1" \
+                     "   );"                                       \
+                     "   delete from cmdan where type = 1; "       \
+                     "commit;"
 
 static int get_term_width() {
     struct winsize w;
@@ -195,7 +206,28 @@ static void confirm_prune(sqlite3 *db) {
     }
     printf(PRETTY_PRUNE "#######################################" PRETTY_NORM "\n");
 
-    // TODO prompt for confirmation and delete
+    bool confirmed = false;
+    char c;
+    while(!confirmed) {
+        printf("Confirm prune? [y/n] ");
+        scanf(" %c", &c);
+        c = (char)tolower(c);
+        if(c != 'y' && c != 'n') {
+            continue;
+        }
+        confirmed = true;
+    }
+    if(c == 'y') {
+        r = sqlite3_exec(db, PURGE_PRUNES, NULL, NULL, &err);
+        if(r != SQLITE_OK) {
+            fprintf(stderr, "Unable to prune: %s\n", err);
+            return;
+        }
+        printf("%d items pruned\n", counter);
+    }
+    else {
+        printf("Aborting prune\n");
+    }
 }
 
 void dump_state(sqlite3 *db, sds *current_line, int *current_selection) {
@@ -369,10 +401,13 @@ bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
             }
         }
     }
-    else if(mode == MODE_PRUNE) {
+
+    reset_non_blocking();
+
+    if(mode == MODE_PRUNE) {
         confirm_prune(db);
     }
-    reset_non_blocking();
+
     for(int f = 0; f < SEARCH_LIMIT; f++) {
         if(hits[f] != NULL) {
             sdsfree(hits[f]);
