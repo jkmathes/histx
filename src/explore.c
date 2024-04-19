@@ -40,7 +40,7 @@
 #define PRETTY_SELECT "\e[46m"
 
 #define PRETTY_PRUNE  "\e[45m"
-
+#define PRETTY_PRUNEHOV "\e[4;45m"
 #define PRETTY_CYAN "\e[0;36m"
 #define PRETTY_NORM "\e[0m"
 
@@ -171,6 +171,10 @@ static int select_prune_handler(void *data, int argc, char **argv, char **col) {
     char *ts = NULL;
     uint32_t *counter = (uint32_t *)data;
     *counter = *counter + 1;
+    
+    if (*counter == 1) {
+        printf(PRETTY_PRUNE "### TO BE PRUNED ######################" PRETTY_NORM "\n");
+    }
 
     for(size_t f = 0; f < argc; f++) {
         char *c = *col++;
@@ -198,13 +202,17 @@ static int select_prune_handler(void *data, int argc, char **argv, char **col) {
 static void confirm_prune(sqlite3 *db) {
     char *err;
     uint32_t counter = 0;
-    printf(PRETTY_PRUNE "### TO BE PRUNED ######################" PRETTY_NORM "\n");
     int r = sqlite3_exec(db, SELECT_PRUNE, select_prune_handler, &counter, &err);
     if(r != SQLITE_OK) {
         fprintf(stderr, "Unable to fetch prune candidates: %s\n", err);
         return;
     }
-    printf(PRETTY_PRUNE "#######################################" PRETTY_NORM "\n");
+    if (counter == 0) {
+        printf(PRETTY_PRUNE "Nothing to prune" PRETTY_NORM "\n");
+        return;
+    } else {
+        printf(PRETTY_PRUNE "#######################################" PRETTY_NORM "\n");
+    }
 
     bool confirmed = false;
     char c;
@@ -253,7 +261,11 @@ void dump_state(sqlite3 *db, sds *current_line, int *current_selection) {
         }
         for(size_t f = 0; f < SEARCH_LIMIT; f++) {
             if(explore_total > 0 && hitsannotations[f] == 1) {
-                printf(PRETTY_PRUNE "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
+                if (f == *current_selection) {
+                    printf(PRETTY_PRUNEHOV "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
+                } else {
+                    printf(PRETTY_PRUNE "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
+                }
             }
             else if(explore_total > 0 && f == *current_selection) {
                 printf(PRETTY_SELECT "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
@@ -366,6 +378,13 @@ bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
             else if(is_arrow && c == K_UP) {
                 current_selection--;
                 dump_state(db, &current_line, &current_selection);
+            }
+            else if (is_arrow && mode == MODE_PRUNE) {
+                bool unmark = hitsannotations[current_selection] == 1;
+                if (unmark && c == K_LEFT || !unmark && c == K_RIGHT) {
+                    prune_current(db, hitsraw[current_selection], unmark);
+                    dump_state(db, &current_line, &current_selection);
+                }
             }
             else if(c == K_PRUNE && mode == MODE_PRUNE) {
                 bool unmark = hitsannotations[current_selection] == 1;

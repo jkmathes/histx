@@ -33,7 +33,8 @@
                     "\t\tcat               - dump the indexed commands\n" \
                     "\t\texplore [tmpfile] - interactive searching of the index\n"                              \
                     "\t\t                    If [tmpfile] is provided, will write the selection (if any)\n" \
-                    "\t\t                    to the tmp file.\n"
+                    "\t\t                    to the tmp file.\n" \
+                    "\t\tprune             - allows you to mark entries to be pruned from the index via the explore interface\n"
 
 
 
