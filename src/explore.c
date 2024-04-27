@@ -21,6 +21,11 @@
 
 #define K_ESC 0x1b
 
+#define K_VI_DOWN 0x6a
+#define K_VI_UP 0x6b
+#define K_VI_PRUNE 0x78
+#define K_VI_INSERT 0x69
+
 #define K_ARROW_VI 0x4f
 #define K_ARROW 0x5b
 #define K_UP    0x41
@@ -116,13 +121,18 @@ static void reset_non_blocking() {
     tcsetattr(STDIN_FILENO, TCSANOW, &current);
 }
 
-static bool has_input() {
+static bool  has_input(int usec) {
     struct timeval tv;
+    int status;
     fd_set fds;
-    tv.tv_sec = tv.tv_usec = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = usec;
     FD_ZERO(&fds);
     FD_SET(STDIN_FILENO, &fds);
-    select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv);
+    status = select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv);
+    if (status == 0) {
+        return false;
+    }
     return FD_ISSET(STDIN_FILENO, &fds);
 }
 
@@ -238,9 +248,12 @@ static void confirm_prune(sqlite3 *db) {
     }
 }
 
-void dump_state(sqlite3 *db, sds *current_line, int *current_selection) {
+void dump_state(sqlite3 *db, sds *current_line, int *current_selection, bool insert) {
     explore_total = 0;
     max_length = 0;
+    if (!insert) {
+        printf("[CMD]");
+    }
     printf("Search: %s\xe2\x96\x88" CLEAR_LINE "\n", *current_line);
     int argc;
     char **split = sdssplitargs(*current_line, &argc);
@@ -305,7 +318,7 @@ bool explore_debug(sqlite3 *db) {
 
     enable_non_blocking();
     while(!explore_done) {
-        if (has_input()) {
+        if (has_input(0)) {
             c = fgetc(stdin);
             if(c == K_ENTER) {
                 explore_done = true;
@@ -319,9 +332,26 @@ bool explore_debug(sqlite3 *db) {
     reset_non_blocking();
     return true;
 }
+// #define nfgetc(fd, c) (read (fileno((fd)), (c), 1))
+int nfgetc(FILE * f) {
+    int c = 0;
+    int r = read(fileno(f), &c, 1);
+    if (r == 1) {
+        return c;
+    }
+    return 0;
+}
 
 bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
     int c;
+    
+    bool vimode = false;
+    bool command_mode = false;
+    char *vi = get_setting("vi-mode");
+    if (vi != NULL && strcmp(vi, "true") == 0) {
+        vimode = true;
+        command_mode = true; // start in command mode
+    }
 
     hits = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
     hitsraw = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
@@ -336,7 +366,7 @@ bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
     printf(CURSOR_DISABLE);
     int current_selection = 0;
     memset(hits, 0, sizeof(char *) * SEARCH_LIMIT);
-    dump_state(db, &current_line, &current_selection);
+    dump_state(db, &current_line, &current_selection, !command_mode);
     sds selection = NULL;
     term_width = get_term_width();
 
@@ -352,48 +382,67 @@ bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
     }
 
     while(!explore_done) {
-        if(has_input()) {
+        if(has_input(0)) {
             bool is_arrow = false;
-            c = fgetc(stdin);
+            //c = fgetc(stdin);
+            c = nfgetc(stdin);
             if(c == K_ESC) {
-                c = fgetc(stdin);
-                // I noticed, at least in zsh, if in vi mode you get ^O for arrow instead of ^[
-                // We probably need a more "portable" way to deal with variant termcaps
-                if(c == K_ARROW || c == K_ARROW_VI) {
-                    is_arrow = true;
-                    c = fgetc(stdin);
-                }
+                if (has_input(50000)) {
+                    //c = fgetc(stdin);
+                    c = nfgetc(stdin);
+                    // I noticed, at least in zsh, if in vi mode you get ^O for arrow instead of ^[
+                    // We probably need a more "portable" way to deal with variant termcaps
+                    if(c == K_ARROW || c == K_ARROW_VI) {
+                        is_arrow = true;
+                        //c = fgetc(stdin);
+                        c = nfgetc(stdin);
+                    }
+                } // else assume pure esc
             }
 
-            if(c == K_ENTER) {
+            if (c == K_ESC) {
+                if (vimode) {
+                    if (!command_mode) {
+                        command_mode = true;
+                        dump_state(db, &current_line, &current_selection, !command_mode);
+                    }
+                } else {
+                    // non vi-mode, we'll just bail
+                    explore_done = true;
+                }
+
+            } else if(c == K_ENTER) {
                 explore_done = true;
                 if(hits[current_selection] != NULL) {
                     selection = sdsnew(hitsraw[current_selection]);
                 }
             }
-            else if(is_arrow && c == K_DOWN) {
+            else if((is_arrow && c == K_DOWN) || (command_mode && c == K_VI_DOWN)) {
                 current_selection++;
-                dump_state(db, &current_line, &current_selection);
+                dump_state(db, &current_line, &current_selection, !command_mode);
             }
-            else if(is_arrow && c == K_UP) {
+            else if((is_arrow && c == K_UP) || (command_mode && c == K_VI_UP)) {
                 current_selection--;
-                dump_state(db, &current_line, &current_selection);
+                dump_state(db, &current_line, &current_selection, !command_mode);
             }
             else if (is_arrow && mode == MODE_PRUNE) {
                 bool unmark = hitsannotations[current_selection] == 1;
                 if (unmark && c == K_LEFT || !unmark && c == K_RIGHT) {
                     prune_current(db, hitsraw[current_selection], unmark);
-                    dump_state(db, &current_line, &current_selection);
+                    dump_state(db, &current_line, &current_selection, !command_mode);
                 }
             }
-            else if(c == K_PRUNE && mode == MODE_PRUNE) {
+            else if(mode == MODE_PRUNE && (c == K_PRUNE || (command_mode && c == K_VI_PRUNE))) {
                 bool unmark = hitsannotations[current_selection] == 1;
                 prune_current(db, hitsraw[current_selection], unmark);
-                dump_state(db, &current_line, &current_selection);
+                dump_state(db, &current_line, &current_selection, !command_mode);
+            } else if (command_mode && c == K_VI_INSERT) {
+                command_mode = false;
+                dump_state(db, &current_line, &current_selection, !command_mode);
             }
-            else {
+            else if (!command_mode) {
                 explore_manipulate(&current_line, c);
-                dump_state(db, &current_line, &current_selection);
+                dump_state(db, &current_line, &current_selection, !command_mode);
             }
         }
     }
