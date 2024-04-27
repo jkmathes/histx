@@ -332,7 +332,7 @@ bool explore_debug(sqlite3 *db) {
     reset_non_blocking();
     return true;
 }
-// #define nfgetc(fd, c) (read (fileno((fd)), (c), 1))
+
 int nfgetc(FILE * f) {
     int c = 0;
     int r = read(fileno(f), &c, 1);
@@ -384,17 +384,14 @@ bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
     while(!explore_done) {
         if(has_input(0)) {
             bool is_arrow = false;
-            //c = fgetc(stdin);
             c = nfgetc(stdin);
             if(c == K_ESC) {
                 if (has_input(50000)) {
-                    //c = fgetc(stdin);
                     c = nfgetc(stdin);
                     // I noticed, at least in zsh, if in vi mode you get ^O for arrow instead of ^[
                     // We probably need a more "portable" way to deal with variant termcaps
                     if(c == K_ARROW || c == K_ARROW_VI) {
                         is_arrow = true;
-                        //c = fgetc(stdin);
                         c = nfgetc(stdin);
                     }
                 } // else assume pure esc

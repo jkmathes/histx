@@ -10,6 +10,7 @@
 #include <pwd.h>
 #include <sys/time.h>
 #include <time.h>
+#include <bsd/bsd.h>
 #include "config/config.h"
 #include "sds/sds.h"
 #include "index.h"
