@@ -10,7 +10,11 @@
 #include <pwd.h>
 #include <sys/time.h>
 #include <time.h>
+
+#if defined(__linux__)
 #include <bsd/bsd.h>
+#endif
+
 #include "config/config.h"
 #include "sds/sds.h"
 #include "index.h"
