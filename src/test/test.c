@@ -44,7 +44,7 @@ static int index_check_handler(void *data, int argc, char **argv, char **col) {
         char *c = *col++;
         char *v = *argv++;
         if(strcmp(c, "hash") == 0) {
-            char *hash = create_hash(input, strlen(input));
+            sds hash = create_hash(input, strlen(input));
             TEST_CHECK(strcmp(v, hash) == 0);
             TEST_MSG("Hash mismatch: expected[%s], found[%s]", hash, v);
             sdsfree(hash);

@@ -58,7 +58,7 @@ static bool insert_lut(sqlite3 *db, uint32_t ngram, char *hash) {
     return true;
 }
 
-char *create_hash(char *src, size_t len) {
+sds create_hash(char *src, size_t len) {
     uint8_t digest[SHA256_DIGEST_LENGTH];
     sds r = sdsempty();
 
@@ -90,7 +90,7 @@ bool ngram_handler_lut(uint32_t ngram, void *data) {
 bool index_cmd(sqlite3 *db, char *cmd) {
     size_t b64len;
     size_t len = strlen(cmd);
-    char *hash = create_hash(cmd, len);
+    sds hash = create_hash(cmd, len);
     char *b64 = (char *)base64_encode((unsigned char *)cmd, len, &b64len);
     bool r = insert_hash(db, hash, b64);
     free(b64);

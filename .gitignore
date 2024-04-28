@@ -56,3 +56,4 @@ histx.db*
 commands.txt
 .vscode
 .DS_Store
+backup.db
