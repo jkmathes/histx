@@ -80,6 +80,7 @@ usage: histx [-d dbfile] <command>
 		explore [tmpfile] - interactive searching of the index
 		                    If [tmpfile] is provided, will write the selection (if any)
 		                    to the tmp file.
+		prune             - allows you to mark entries to be pruned from the index via the explore interface
 ```
 
 ## Settings
