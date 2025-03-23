@@ -48,6 +48,8 @@
 #define PRETTY_PRUNEHOV "\e[4;45m"
 #define PRETTY_CYAN "\e[0;36m"
 #define PRETTY_NORM "\e[0m"
+#define PRETTY_DIM "\e[2m"
+#define PRETTY_UNDIM "\e[22m"
 
 #define CURSOR_DISABLE "\e[?25l"
 #define CURSOR_ENABLE  "\e[?25h"
@@ -58,7 +60,7 @@
                     "set type=excluded.type, desc=excluded.desc" \
                     ";"
 
-#define SELECT_PRUNE "select r.hash, r.cmd, r.ts, a.type, a.desc " \
+#define SELECT_PRUNE "select r.hash, r.cmd, r.ts, r.cwd, a.type, a.desc " \
                      "from cmdraw as r "                           \
                      "inner join cmdan as a "                      \
                      "where r.hash = a.hash and a.type = 1 "       \
@@ -147,16 +149,19 @@ static int term_width;
 static int max_length;
 static char **hits;
 static char **hitsraw;
+static char **hitscwd;
 static uint8_t *hitsannotations;
 
 bool explore_handler(struct hit_context *hit) {
     if(hits[explore_total] != NULL) {
         sdsfree(hits[explore_total]);
         sdsfree(hitsraw[explore_total]);
+        sdsfree(hitscwd[explore_total]);
     }
     hits[explore_total] = sdsnew(hit->cmd);
     hitsraw[explore_total] = sdsnew(hits[explore_total]);
     hitsannotations[explore_total] = hit->annotation_type;
+    hitscwd[explore_total] = sdsnew(hit->cwd);
     sdsrange(hits[explore_total++], 0, term_width - 2);
     return true;
 }
@@ -248,6 +253,14 @@ static void confirm_prune(sqlite3 *db) {
     }
 }
 
+void print_hit(int h, const char * color) {
+    printf("%s%s", color, hits[h]);
+    if (hitscwd[h] != NULL && sdslen(hitscwd[h]) > 0) {
+        printf(PRETTY_DIM " (%s)" PRETTY_UNDIM, hitscwd[h]);
+    }
+    printf(PRETTY_NORM CLEAR_LINE "\n");
+}
+
 void dump_state(sqlite3 *db, sds *current_line, int *current_selection, bool insert) {
     explore_total = 0;
     max_length = 0;
@@ -275,16 +288,16 @@ void dump_state(sqlite3 *db, sds *current_line, int *current_selection, bool ins
         for(size_t f = 0; f < SEARCH_LIMIT; f++) {
             if(explore_total > 0 && hitsannotations[f] == 1) {
                 if (f == *current_selection) {
-                    printf(PRETTY_PRUNEHOV "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
+                    print_hit(f, PRETTY_PRUNEHOV);
                 } else {
-                    printf(PRETTY_PRUNE "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
+                    print_hit(f, PRETTY_PRUNE);
                 }
             }
             else if(explore_total > 0 && f == *current_selection) {
-                printf(PRETTY_SELECT "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
+                print_hit(f, PRETTY_SELECT);
             }
             else if(f < explore_total) {
-                printf(PRETTY_GREY "%s" PRETTY_NORM CLEAR_LINE "\n", hits[f]);
+                print_hit(f, PRETTY_GREY);
             }
             else {
                 printf(CLEAR_LINE "\n");
@@ -293,6 +306,8 @@ void dump_state(sqlite3 *db, sds *current_line, int *current_selection, bool ins
                     hits[f] = NULL;
                     sdsfree(hitsraw[f]);
                     hitsraw[f] = NULL;
+                    sdsfree(hitscwd[f]);
+                    hitscwd[f] = NULL;
                 }
             }
         }
@@ -355,6 +370,7 @@ bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
 
     hits = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
     hitsraw = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
+    hitscwd = (char **)malloc(sizeof(char *) * SEARCH_LIMIT);
     hitsannotations = (uint8_t *)malloc(sizeof(uint8_t) * SEARCH_LIMIT);
 
     signal(SIGINT, done_handler);
@@ -477,6 +493,7 @@ bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
         if(hits[f] != NULL) {
             sdsfree(hits[f]);
             sdsfree(hitsraw[f]);
+            sdsfree(hitscwd[f]);
         }
     }
     if(current_line != NULL) {
@@ -488,6 +505,7 @@ bool explore_cmd(sqlite3 *db, FILE *output, uint8_t mode) {
     free(hits);
     free(hitsraw);
     free(hitsannotations);
+    free(hitscwd);
     return true;
 }
 

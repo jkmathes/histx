@@ -15,20 +15,20 @@
     #include <openssl/sha.h>
 #endif
 
-#define INSERT_HASH_HDR     "insert or replace into cmdraw(hash, ts, cmd) values("
+#define INSERT_HASH_HDR     "insert or replace into cmdraw(hash, ts, cmd, cwd) values("
 #define INSERT_HASH_FTR     ");"
 
 #define INSERT_LUT_HDR      "insert or ignore into cmdlut(host, ngram, hash) values("
 #define INSERT_LUT_FTR      ");"
 
-static bool insert_hash(sqlite3 *db, char *hash, char *cmd) {
+static bool insert_hash(sqlite3 *db, char *hash, char *cmd, char *cwd) {
     char *err;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t ts = (uint64_t )(tv.tv_sec) * 1000 + (uint64_t )(tv.tv_usec) / 1000;
-    sds c = sdscatprintf(sdsempty(), "%s \"%s\",%" PRIu64 ",\"%s\" %s",
+    sds c = sdscatprintf(sdsempty(), "%s \"%s\",%" PRIu64 ",\"%s\", \"%s\" %s",
                 INSERT_HASH_HDR,
-                hash, ts, cmd,
+                hash, ts, cmd, cwd,
                 INSERT_HASH_FTR
     );
     int r = sqlite3_exec(db, c, NULL, NULL, &err);
@@ -87,12 +87,13 @@ bool ngram_handler_lut(uint32_t ngram, void *data) {
     return insert_lut(context->db, ngram, context->hash);
 }
 
-bool index_cmd(sqlite3 *db, char *cmd) {
+bool index_cmd(sqlite3 *db, char *cmd, char *cwd) {
     size_t b64len;
     size_t len = strlen(cmd);
     sds hash = create_hash(cmd, len);
     char *b64 = (char *)base64_encode((unsigned char *)cmd, len, &b64len);
-    bool r = insert_hash(db, hash, b64);
+    char *cwdb64 = (char *)base64_encode((unsigned char *)cwd, strlen(cwd), &b64len);
+    bool r = insert_hash(db, hash, b64, cwdb64);
     free(b64);
     if(r == false) {
         return r;

@@ -11,6 +11,7 @@ struct hit_context {
     char *cmd;
     uint64_t ts;
     uint8_t annotation_type;
+    char *cwd;
 };
 
 bool find_cmd(sqlite3 *db, char **keywords, bool (*hit_handler)(struct hit_context *));
