@@ -78,7 +78,7 @@ void test_index(void) {
     for(size_t f = 0; f < 100; f++) {
         char r = input_set[random() % len];
         input = sdscatprintf(input, "%c", r);
-        TEST_CHECK(index_cmd(db, input));
+        TEST_CHECK(index_cmd(db, input, "bogus"));
         char *err;
         int sr = sqlite3_exec(db, query, index_check_handler, input, &err);
         TEST_CHECK(sr == SQLITE_OK);
@@ -120,7 +120,7 @@ void test_find(void) {
         keywords[0] = input;
         current_input = input;
         current_hit = 0;
-        TEST_CHECK(index_cmd(db, input));
+        TEST_CHECK(index_cmd(db, input, "bogus"));
         TEST_CHECK(find_cmd(db, keywords, find_check_handler));
     }
 
