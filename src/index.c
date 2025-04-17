@@ -95,6 +95,7 @@ bool index_cmd(sqlite3 *db, char *cmd, char *cwd) {
     char *cwdb64 = (char *)base64_encode((unsigned char *)cwd, strlen(cwd), &b64len);
     bool r = insert_hash(db, hash, b64, cwdb64);
     free(b64);
+    free(cwdb64);
     if(r == false) {
         return r;
     }
