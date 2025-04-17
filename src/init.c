@@ -17,8 +17,7 @@
 #define CREATE_TABLE_RAW    "create table if not exists cmdraw (" \
                                 "hash text," \
                                 "ts integer," \
-                                "cmd text," \
-                                "cwd text" \
+                                "cmd text" \
                             ");"
 
 #define RAW_INDEX           "create unique index if not exists hashindex on cmdraw(hash);"
