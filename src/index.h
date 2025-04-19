@@ -6,6 +6,6 @@
 #include "sds.h"
 
 sds create_hash(char *src, size_t len);
-bool index_cmd(sqlite3 *db, char *cmd);
+bool index_cmd(sqlite3 *db, char *cmd, char *cwd);
 
 #endif //HISTX_INDEX_H

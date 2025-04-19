@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <unistd.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <string.h>
 #include <pwd.h>
@@ -26,6 +27,7 @@
 
 #define PRETTY_CYAN "\e[0;36m"
 #define PRETTY_NORM "\e[0m"
+#define PRETTY_GREY "\e[0;37m"
 
 #define HISTX_USAGE "usage: histx [-d dbfile] <command>\n" \
                     "\toptions:\n" \
@@ -109,13 +111,21 @@ bool cat_printer(struct hit_context *hit) {
     char timestamp[24];
     strftime(timestamp, sizeof(timestamp) - 1, "%F %T", localtime(&tv.tv_sec));
 
-    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", timestamp, hit->cmd);
+    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s", timestamp, hit->cmd);
+    if (hit->cwd != NULL) {
+        printf(PRETTY_GREY " (%s)" PRETTY_NORM, hit->cwd);
+    }
+    printf("\n");
     return true;
 }
 
 bool find_printer(struct hit_context *hit) {
     char *when = when_pretty(hit->ts);
-    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s\n", when, hit->cmd);
+    printf(PRETTY_CYAN "[%s]" PRETTY_NORM " %s", when, hit->cmd);
+    if (hit->cwd != NULL) {
+        printf(PRETTY_GREY " (%s)" PRETTY_NORM, hit->cwd);
+    }
+    printf("\n");
     sdsfree(when);
     return true;
 }
@@ -182,20 +192,28 @@ int main(int argc, char **argv) {
 
     if(*iter && strcmp(*iter, "index") == 0) {
         iter++;
+
+        sds cwd = sdsnewlen("", PATH_MAX);
+        if (getcwd(cwd, PATH_MAX) == NULL) {
+            fprintf(stderr, "Unable to get current directory\n");
+            return -1;
+        }
+
         if (strcmp(*iter, "-") == 0 && argc - optind + 1) {
             sds cmd;
             while ((cmd = get_cmd_from_stdin()) != NULL) {
                 if(strlen(cmd) > 0) {
-                    index_cmd(db, cmd);
+                    index_cmd(db, cmd, cwd);
                 }
                 sdsfree(cmd);
             }
         }
         else {
             sds cmd = reduce_cmd(iter);
-            index_cmd(db, cmd);
+            index_cmd(db, cmd, cwd);
             sdsfree(cmd);
         }
+        sdsfree(cwd);
     }
     else if(*iter && strcmp(*iter, "find") == 0) {
         iter++;

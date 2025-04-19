@@ -10,7 +10,7 @@
 #include "sds/sds.h"
 #include "base64/base64.h"
 
-#define SELECT_RAW_CMD "select hash, ts, cmd " \
+#define SELECT_RAW_CMD "select hash, ts, cmd, cwd " \
                        "from cmdraw "          \
                        "order by ts asc"
 
@@ -18,6 +18,7 @@ static int cat_handler(void *data, int argc, char **argv, char **col) {
     bool (*handler)(struct hit_context *) = (bool (*)(struct hit_context *))data;
     char *cmd = NULL;
     char *ts = NULL;
+    char *cwd = NULL;
 
     for (size_t f = 0; f < argc; f++) {
         char *c = *col++;
@@ -30,10 +31,19 @@ static int cat_handler(void *data, int argc, char **argv, char **col) {
         else if (strcmp(c, "ts") == 0) {
             ts = v;
         }
+        else if (strcmp(c, "cwd") == 0) {
+            if (v != NULL) {
+                size_t len;
+                char *orig = (char *) base64_decode((unsigned char *)v, strlen(v), &len);
+                cwd = orig;
+            } else {
+                cwd = v;
+            }
+        }
     }
 
     uint64_t epoch = strtoll(ts, NULL, 10);
-    struct hit_context hit = { .ts = epoch, .cmd = cmd };
+    struct hit_context hit = { .ts = epoch, .cmd = cmd, .cwd = cwd};
     handler(&hit);
     free(cmd);
     return 0;

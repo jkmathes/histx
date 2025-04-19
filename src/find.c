@@ -10,7 +10,7 @@
 #define EXPAND_STR(v)       #v
 #define TO_STR(v)           EXPAND_STR(v)
 
-#define SELECT_LUT_HDR      "select distinct(cmdlut.hash), count(cmdlut.hash) as rank, cmd, ts, type " \
+#define SELECT_LUT_HDR      "select distinct(cmdlut.hash), count(cmdlut.hash) as rank, cmd, ts, type, cwd " \
                             "from cmdlut "                                                             \
                             "inner join cmdraw on cmdlut.hash = cmdraw.hash "                          \
                             "left outer join cmdan on cmdraw.hash = cmdan.hash "                       \
@@ -20,7 +20,7 @@
                             "%d"                                                      \
                             ";"
 
-#define SELECT_ALL          "select cmdraw.hash, ts, cmd, type "                 \
+#define SELECT_ALL          "select cmdraw.hash, ts, cmd, type, cwd "                 \
                             "from cmdraw "                                       \
                             "left outer join cmdan on cmdraw.hash = cmdan.hash " \
                             "order by ts desc"                                   \
@@ -47,6 +47,7 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
     char *cmd = NULL;
     char *ts = NULL;
     char *type = NULL;
+    char *cwd = NULL;
     struct find_context *context = (struct find_context *)data;
 
     for(size_t f = 0; f < argc; f++) {
@@ -62,6 +63,14 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
         }
         else if(strcmp(c, "type") == 0) {
             type = v;
+        } else if (strcmp(c, "cwd") == 0) {
+            size_t len;
+            if (v != NULL) {
+                char *orig = (char *)base64_decode((unsigned char *)v, strlen(v), &len);
+                cwd = orig;
+            } else {
+                cwd = v;
+            }
         }
     }
 
@@ -82,7 +91,7 @@ static int find_handler(void *data, int argc, char **argv, char **col) {
     if(type != NULL) {
         t = strtol(type, NULL, 10);
     }
-    struct hit_context hit = { .cmd = cmd, .ts = w, .annotation_type = t};
+    struct hit_context hit = { .cmd = cmd, .ts = w, .annotation_type = t, .cwd = cwd };
     context->hit_handler(&hit);
     free(cmd);
     return 0;
