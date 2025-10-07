@@ -162,7 +162,24 @@ bool explore_handler(struct hit_context *hit) {
     hitsraw[explore_total] = sdsnew(hits[explore_total]);
     hitsannotations[explore_total] = hit->annotation_type;
     hitscwd[explore_total] = sdsnew(hit->cwd);
-    sdsrange(hits[explore_total++], 0, term_width - 2);
+
+    size_t i = explore_total;
+    size_t cwdlen = (hitscwd[i] != NULL) ? sdslen(hitscwd[i]) : 0;
+    // When printing we show: "%s (%s)" if cwd is present.
+    // ...but the whole line needs to fit within `term_width - 2`.
+    // Rendered, this is "%s (%s)", which is hit + cwd + 3 chars
+    size_t extra = (cwdlen > 0) ? (3 + cwdlen) : 0;
+    size_t allowed = term_width - 2 - extra;
+    if (allowed <= 0) {
+        // Make the CWD empty and show only the command if
+        // we're off the rails and need to be aggressive
+        sdsrange(hitscwd[i], 1, 0);
+        sdsrange(hits[i], 0, term_width - 2);
+    } else {
+        // Keep only the first 'allowed' characters of hits otherwise
+        sdsrange(hits[i], 0, (int)allowed - 1);
+    }
+    explore_total++;
     return true;
 }
 
