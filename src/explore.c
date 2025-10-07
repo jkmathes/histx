@@ -164,20 +164,32 @@ bool explore_handler(struct hit_context *hit) {
     hitscwd[explore_total] = sdsnew(hit->cwd);
 
     size_t i = explore_total;
+    // Budget for visible characters (excluding color codes), leaving 2 cols for UI padding
+    int width_budget = term_width - 2;
+    if (width_budget < 0) width_budget = 0;
+
     size_t cwdlen = (hitscwd[i] != NULL) ? sdslen(hitscwd[i]) : 0;
     // When printing we show: "%s (%s)" if cwd is present.
-    // ...but the whole line needs to fit within `term_width - 2`.
-    // Rendered, this is "%s (%s)", which is hit + cwd + 3 chars
-    size_t extra = (cwdlen > 0) ? (3 + cwdlen) : 0;
-    size_t allowed = term_width - 2 - extra;
+    // The visible extra for the cwd part is 3 fixed chars:
+    // " (" and ")" plus the cwd length.
+    int cwd_extra = (hitscwd[i] != NULL && cwdlen > 0) ? (int)(3 + cwdlen) : 0;
+    int allowed = width_budget - cwd_extra;
+
+    if (allowed < 0) {
+        // Favor the command: drop the CWD so we can use the full width for cmd
+        sdsfree(hitscwd[i]);
+        hitscwd[i] = NULL;
+        allowed = width_budget;
+    }
+
     if (allowed <= 0) {
-        // Make the CWD empty and show only the command if
-        // we're off the rails and need to be aggressive
-        sdsrange(hitscwd[i], 1, 0);
-        sdsrange(hits[i], 0, term_width - 2);
+        // Crazy town - truncate everything so we don't wrap, but
+        // we just have no meaningful results
+        sdsfree(hits[i]);
+        hits[i] = sdsempty();
     } else {
-        // Keep only the first 'allowed' characters of hits otherwise
-        sdsrange(hits[i], 0, (int)allowed - 1);
+        // Keep only the first 'allowed' visible characters of hits
+        sdsrange(hits[i], 0, allowed - 1);
     }
     explore_total++;
     return true;
