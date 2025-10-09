@@ -162,7 +162,36 @@ bool explore_handler(struct hit_context *hit) {
     hitsraw[explore_total] = sdsnew(hits[explore_total]);
     hitsannotations[explore_total] = hit->annotation_type;
     hitscwd[explore_total] = sdsnew(hit->cwd);
-    sdsrange(hits[explore_total++], 0, term_width - 2);
+
+    size_t i = explore_total;
+    // Budget for visible characters (excluding color codes), leaving 2 cols for UI padding
+    int width_budget = term_width - 2;
+    if (width_budget < 0) width_budget = 0;
+
+    size_t cwdlen = (hitscwd[i] != NULL) ? sdslen(hitscwd[i]) : 0;
+    // When printing we show: "%s (%s)" if cwd is present.
+    // The visible extra for the cwd part is 3 fixed chars:
+    // " (" and ")" plus the cwd length.
+    int cwd_extra = (hitscwd[i] != NULL && cwdlen > 0) ? (int)(3 + cwdlen) : 0;
+    int allowed = width_budget - cwd_extra;
+
+    if (allowed < 0) {
+        // Favor the command: drop the CWD so we can use the full width for cmd
+        sdsfree(hitscwd[i]);
+        hitscwd[i] = NULL;
+        allowed = width_budget;
+    }
+
+    if (allowed <= 0) {
+        // Crazy town - truncate everything so we don't wrap, but
+        // we just have no meaningful results
+        sdsfree(hits[i]);
+        hits[i] = sdsempty();
+    } else {
+        // Keep only the first 'allowed' visible characters of hits
+        sdsrange(hits[i], 0, allowed - 1);
+    }
+    explore_total++;
     return true;
 }
 
