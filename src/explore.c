@@ -55,7 +55,7 @@
 #define CURSOR_ENABLE  "\e[?25h"
 
 #define MARK_PRUNE  "insert into cmdan(hash, type, desc) "       \
-                    "values (\"%s\", %d, \"%s\") "               \
+                    "values (?, ?, ?) "                          \
                     "on conflict(hash) do update "               \
                     "set type=excluded.type, desc=excluded.desc" \
                     ";"
@@ -67,8 +67,8 @@
                      "group by r.hash"                             \
                      ";"
 
-#define DELETE_PRUNE "delete from cmdan "              \
-                     "where hash = '%s' and type = 1 " \
+#define DELETE_PRUNE "delete from cmdan "                     \
+                     "where hash = ? and type = 1 "           \
                      ";"
 
 #define PURGE_PRUNES "begin; "                                     \
@@ -88,22 +88,37 @@ static int get_term_width() {
 }
 
 static void prune_current(sqlite3 *db, sds selection, bool unmark) {
-    char *err;
     sds hash = create_hash(selection, sdslen(selection));
-    sds c = sdsempty();
+    sqlite3_stmt *stmt;
+    int r;
+
     if(unmark) {
-        c = sdscatprintf(c, DELETE_PRUNE, hash);
+        r = sqlite3_prepare_v2(db, DELETE_PRUNE, -1, &stmt, NULL);
+        if(r != SQLITE_OK) {
+            fprintf(stderr, "Unable to prepare delete statement: %s\n", sqlite3_errmsg(db));
+            sdsfree(hash);
+            return;
+        }
+        sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_STATIC);
     }
     else {
-        c = sdscatprintf(c, MARK_PRUNE, hash, 1, "prune");
+        r = sqlite3_prepare_v2(db, MARK_PRUNE, -1, &stmt, NULL);
+        if(r != SQLITE_OK) {
+            fprintf(stderr, "Unable to prepare insert statement: %s\n", sqlite3_errmsg(db));
+            sdsfree(hash);
+            return;
+        }
+        sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 2, 1);
+        sqlite3_bind_text(stmt, 3, "prune", -1, SQLITE_STATIC);
     }
-    int r = sqlite3_exec(db, c, NULL, NULL, &err);
-    if(r != SQLITE_OK) {
-        fprintf(stderr, "Unable to mark for pruning: %s\n", err);
-        return;
+
+    r = sqlite3_step(stmt);
+    if(r != SQLITE_DONE) {
+        fprintf(stderr, "Unable to mark for pruning: %s\n", sqlite3_errmsg(db));
     }
+    sqlite3_finalize(stmt);
     sdsfree(hash);
-    sdsfree(c);
 }
 
 static void enable_non_blocking() {
