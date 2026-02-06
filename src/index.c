@@ -15,46 +15,55 @@
     #include <openssl/sha.h>
 #endif
 
-#define INSERT_HASH_HDR     "insert or replace into cmdraw(hash, ts, cmd, cwd) values("
-#define INSERT_HASH_FTR     ");"
-
-#define INSERT_LUT_HDR      "insert or ignore into cmdlut(host, ngram, hash) values("
-#define INSERT_LUT_FTR      ");"
+#define INSERT_HASH "insert or replace into cmdraw(hash, ts, cmd, cwd) values(?, ?, ?, ?);"
+#define INSERT_LUT  "insert or ignore into cmdlut(host, ngram, hash) values(?, ?, ?);"
 
 static bool insert_hash(sqlite3 *db, char *hash, char *cmd, char *cwd) {
-    char *err;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t ts = (uint64_t )(tv.tv_sec) * 1000 + (uint64_t )(tv.tv_usec) / 1000;
-    sds c = sdscatprintf(sdsempty(), "%s \"%s\",%" PRIu64 ",\"%s\", \"%s\" %s",
-                INSERT_HASH_HDR,
-                hash, ts, cmd, cwd,
-                INSERT_HASH_FTR
-    );
-    int r = sqlite3_exec(db, c, NULL, NULL, &err);
+
+    sqlite3_stmt *stmt;
+    int r = sqlite3_prepare_v2(db, INSERT_HASH, -1, &stmt, NULL);
     if(r != SQLITE_OK) {
-        fprintf(stderr, "Unable to write to database: %s\n", err);
-        fprintf(stderr, "query[%s]\n", c);
+        fprintf(stderr, "Unable to prepare insert statement: %s\n", sqlite3_errmsg(db));
         return false;
     }
-    sdsfree(c);
+
+    sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_STATIC);
+    sqlite3_bind_int64(stmt, 2, ts);
+    sqlite3_bind_text(stmt, 3, cmd, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 4, cwd, -1, SQLITE_STATIC);
+
+    r = sqlite3_step(stmt);
+    if(r != SQLITE_DONE) {
+        fprintf(stderr, "Unable to write to database: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return false;
+    }
+    sqlite3_finalize(stmt);
     return true;
 }
 
 static bool insert_lut(sqlite3 *db, uint32_t ngram, char *hash) {
-    char *err;
-    sds c = sdscatprintf(sdsempty(), "%s \"%s\", %u, \"%s\" %s",
-                INSERT_LUT_HDR,
-                "", ngram, hash,
-                INSERT_LUT_FTR
-    );
-    int r = sqlite3_exec(db, c, NULL, NULL, &err);
+    sqlite3_stmt *stmt;
+    int r = sqlite3_prepare_v2(db, INSERT_LUT, -1, &stmt, NULL);
     if(r != SQLITE_OK) {
-        fprintf(stderr, "Unable to write to database: %s\n", err);
-        fprintf(stderr, "query[%s]\n", c);
+        fprintf(stderr, "Unable to prepare insert statement: %s\n", sqlite3_errmsg(db));
         return false;
     }
-    sdsfree(c);
+
+    sqlite3_bind_text(stmt, 1, "", -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 2, ngram);
+    sqlite3_bind_text(stmt, 3, hash, -1, SQLITE_STATIC);
+
+    r = sqlite3_step(stmt);
+    if(r != SQLITE_DONE) {
+        fprintf(stderr, "Unable to write to database: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return false;
+    }
+    sqlite3_finalize(stmt);
     return true;
 }
 
